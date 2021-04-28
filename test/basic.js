@@ -11,11 +11,11 @@ describe("basic", () => {
       field.UInt32LE("myfield2");
     }).abi({});
 
-    assert.equal(def.size, 8);
-    assert.equal(def.offsetof("myfield1"), 0);
-    assert.equal(def.sizeof("myfield1"), 4);
-    assert.equal(def.offsetof("myfield2"), 4);
-    assert.equal(def.sizeof("myfield2"), 4);
+    assert.strictEqual(def.size, 8);
+    assert.strictEqual(def.offsetof("myfield1"), 0);
+    assert.strictEqual(def.sizeof("myfield1"), 4);
+    assert.strictEqual(def.offsetof("myfield2"), 4);
+    assert.strictEqual(def.sizeof("myfield2"), 4);
   });
 
   it("should allow empty instantiation", () => {
@@ -26,9 +26,9 @@ describe("basic", () => {
 
     const buf = def.format({});
 
-    assert.equal(buf.length, 8);
-    assert.equal(buf.readUInt32LE(0), 0);
-    assert.equal(buf.readUInt32LE(4), 0);
+    assert.strictEqual(buf.length, 8);
+    assert.strictEqual(buf.readUInt32LE(0), 0);
+    assert.strictEqual(buf.readUInt32LE(4), 0);
   });
 
   it("should format data correctly", () => {
@@ -42,9 +42,9 @@ describe("basic", () => {
       "myfield2": 20n
     });
 
-    assert.equal(buf.length, 8);
-    assert.equal(buf.readUInt32LE(0), 10);
-    assert.equal(buf.readUInt32LE(4), 20);
+    assert.strictEqual(buf.length, 8);
+    assert.strictEqual(buf.readUInt32LE(0), 10);
+    assert.strictEqual(buf.readUInt32LE(4), 20);
   });
 
   it("should partial-format data correctly", () => {
@@ -57,9 +57,9 @@ describe("basic", () => {
       "myfield2": 20n
     });
 
-    assert.equal(buf.length, 8);
-    assert.equal(buf.readUInt32LE(0), 0);
-    assert.equal(buf.readUInt32LE(4), 20);
+    assert.strictEqual(buf.length, 8);
+    assert.strictEqual(buf.readUInt32LE(0), 0);
+    assert.strictEqual(buf.readUInt32LE(4), 20);
   });
 
   it("should parse data correctly", () => {
@@ -70,13 +70,13 @@ describe("basic", () => {
 
     const buf = def.format({});
 
-    assert.equal(buf.length, 8);
+    assert.strictEqual(buf.length, 8);
 
     buf.writeUInt32LE(30, 0);
 
     const data = def.parse(buf);
 
-    assert.equal(data.myfield1, 30n);
-    assert.equal(data.myfield2, 0n);
+    assert.strictEqual(data.myfield1, 30n);
+    assert.strictEqual(data.myfield2, 0n);
   });
 });

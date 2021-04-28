@@ -22,10 +22,10 @@ describe("referencing", () => {
 
     const addr = buf2.readBigUInt64LE(0);
 
-    assert.equal(typeof addr, "bigint");
+    assert.strictEqual(typeof addr, "bigint");
     assert(addr !== 0n);
     assert(Array.isArray(buf2.referencedBuffers));
-    assert.equal(buf2.referencedBuffers.length, 1);
-    assert.equal(buf2.referencedBuffers[0], buf1);
+    assert.strictEqual(buf2.referencedBuffers.length, 1);
+    assert.strictEqual(buf2.referencedBuffers[0], buf1);
   });
 });

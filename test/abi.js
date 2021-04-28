@@ -21,11 +21,11 @@ describe("abi", () => {
         field.UInt32("myfield2");
       }).abi({ endianness });
 
-      assert.equal(def.size, 8);
-      assert.equal(def.offsetof("myfield1"), 0);
-      assert.equal(def.sizeof("myfield1"), 4);
-      assert.equal(def.offsetof("myfield2"), 4);
-      assert.equal(def.sizeof("myfield2"), 4);
+      assert.strictEqual(def.size, 8);
+      assert.strictEqual(def.offsetof("myfield1"), 0);
+      assert.strictEqual(def.sizeof("myfield1"), 4);
+      assert.strictEqual(def.offsetof("myfield2"), 4);
+      assert.strictEqual(def.sizeof("myfield2"), 4);
     });
 
     it("should parse data correctly", () => {
@@ -40,8 +40,8 @@ describe("abi", () => {
       buf[`writeUInt32${endianness}`](30, 4);
 
       const data = def.parse(buf);
-      assert.equal(data.myfield1, 20n);
-      assert.equal(data.myfield2, 30n);
+      assert.strictEqual(data.myfield1, 20n);
+      assert.strictEqual(data.myfield2, 30n);
     });
 
     it("should format data correctly", () => {
@@ -58,8 +58,8 @@ describe("abi", () => {
       const myfield1 = buf[`readUInt32${endianness}`](0);
       const myfield2 = buf[`readUInt32${endianness}`](4);
 
-      assert.equal(myfield1, 20n);
-      assert.equal(myfield2, 30n);
+      assert.strictEqual(myfield1, 20);
+      assert.strictEqual(myfield2, 30);
     });
   };
 
@@ -82,11 +82,11 @@ describe("abi", () => {
           field.Pointer("myfield2");
         }).abi({ endianness, dataModel });
 
-        assert.equal(def.size, 16);
-        assert.equal(def.offsetof("myfield1"), 0);
-        assert.equal(def.sizeof("myfield1"), 8);
-        assert.equal(def.offsetof("myfield2"), 8);
-        assert.equal(def.sizeof("myfield2"), 8);
+        assert.strictEqual(def.size, 16);
+        assert.strictEqual(def.offsetof("myfield1"), 0);
+        assert.strictEqual(def.sizeof("myfield1"), 8);
+        assert.strictEqual(def.offsetof("myfield2"), 8);
+        assert.strictEqual(def.sizeof("myfield2"), 8);
       });
 
       it("should parse data correctly", () => {
@@ -101,8 +101,8 @@ describe("abi", () => {
         buf.writeBigUInt64LE(30n, 8);
 
         const data = def.parse(buf);
-        assert.equal(data.myfield1, 20n);
-        assert.equal(data.myfield2, 30n);
+        assert.strictEqual(data.myfield1, 20n);
+        assert.strictEqual(data.myfield2, 30n);
       });
 
       it("should format data correctly", () => {
@@ -119,8 +119,8 @@ describe("abi", () => {
         const myfield1 = buf.readBigUInt64LE(0);
         const myfield2 = buf.readBigUInt64LE(8);
 
-        assert.equal(myfield1, 20n);
-        assert.equal(myfield2, 30n);
+        assert.strictEqual(myfield1, 20n);
+        assert.strictEqual(myfield2, 30n);
       });
     });
   });
