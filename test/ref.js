@@ -9,11 +9,11 @@ describe("referencing", () => {
     const def1 = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     const def2 = struct.define(({ field }) => {
       field.BigUInt64LE("pointerToDef1");
-    });
+    }).abi({});
 
     const buf1 = def1.format({});
     const buf2 = def2.format({

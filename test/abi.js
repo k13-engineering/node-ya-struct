@@ -10,16 +10,16 @@ describe("abi", () => {
       struct.define(({ field }) => {
         field.UInt32("myfield1");
         field.UInt32("myfield2");
-      });
+      }).abi({});
     });
   });
 
   const testEndiannessFor = ({ endianness }) => {
     it("should support structure definition", () => {
-      const def = struct.abi({ endianness }).define(({ field }) => {
+      const def = struct.define(({ field }) => {
         field.UInt32("myfield1");
         field.UInt32("myfield2");
-      });
+      }).abi({ endianness });
 
       assert.equal(def.size, 8);
       assert.equal(def.offsetof("myfield1"), 0);
@@ -29,10 +29,10 @@ describe("abi", () => {
     });
 
     it("should parse data correctly", () => {
-      const def = struct.abi({ endianness }).define(({ field }) => {
+      const def = struct.define(({ field }) => {
         field.UInt32("myfield1");
         field.UInt32("myfield2");
-      });
+      }).abi({ endianness });
 
       const buf = def.format({});
 
@@ -45,10 +45,10 @@ describe("abi", () => {
     });
 
     it("should format data correctly", () => {
-      const def = struct.abi({ endianness }).define(({ field }) => {
+      const def = struct.define(({ field }) => {
         field.UInt32("myfield1");
         field.UInt32("myfield2");
-      });
+      }).abi({ endianness });
 
       const buf = def.format({
         "myfield1": 20n,
@@ -73,13 +73,14 @@ describe("abi", () => {
 
   describe("data models", () => {
     describe("LP64", () => {
-      const structAbi = struct.abi({ "endianness": "LE", "dataModel": "LP64" });
+      const endianness = "LE";
+      const dataModel = "LP64";
 
       it("should support structure definition", () => {
-        const def = structAbi.define(({ field }) => {
+        const def = struct.define(({ field }) => {
           field.Pointer("myfield1");
           field.Pointer("myfield2");
-        });
+        }).abi({ endianness, dataModel });
 
         assert.equal(def.size, 16);
         assert.equal(def.offsetof("myfield1"), 0);
@@ -89,10 +90,10 @@ describe("abi", () => {
       });
 
       it("should parse data correctly", () => {
-        const def = structAbi.define(({ field }) => {
+        const def = struct.define(({ field }) => {
           field.Pointer("myfield1");
           field.Pointer("myfield2");
-        });
+        }).abi({ endianness, dataModel });
 
         const buf = def.format({});
 
@@ -105,10 +106,10 @@ describe("abi", () => {
       });
 
       it("should format data correctly", () => {
-        const def = structAbi.define(({ field }) => {
+        const def = struct.define(({ field }) => {
           field.Pointer("myfield1");
           field.Pointer("myfield2");
-        });
+        }).abi({ endianness, dataModel });
 
         const buf = def.format({
           "myfield1": 20n,
@@ -137,7 +138,7 @@ describe("abi", () => {
 
   describe("host detection", () => {
     (isHostSupported ? it : it.skip)("should detect host without error", () => {
-      struct.forHost();
+      struct.define(() => {}).forHost();
     });
   });
 });

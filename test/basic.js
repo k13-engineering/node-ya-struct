@@ -9,7 +9,7 @@ describe("basic", () => {
     const def = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     assert.equal(def.size, 8);
     assert.equal(def.offsetof("myfield1"), 0);
@@ -22,7 +22,7 @@ describe("basic", () => {
     const def = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     const buf = def.format({});
 
@@ -35,7 +35,7 @@ describe("basic", () => {
     const def = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     const buf = def.format({
       "myfield1": 10n,
@@ -51,7 +51,7 @@ describe("basic", () => {
     const def = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     const buf = def.format({
       "myfield2": 20n
@@ -66,7 +66,7 @@ describe("basic", () => {
     const def = struct.define(({ field }) => {
       field.UInt32LE("myfield1");
       field.UInt32LE("myfield2");
-    });
+    }).abi({});
 
     const buf = def.format({});
 
