@@ -171,7 +171,7 @@ describe("abi", () => {
         assert.strictEqual(def.offsetof("myfield2"), 8);
       });
     });
-  })
+  });
 
   const supportedAbiPlatforms = [
     {
