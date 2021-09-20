@@ -29,7 +29,7 @@
   },
   "homepage": "https://github.com/k13-engineering/node-ya-struct#readme",
   "dependencies": {
-    "buffer2address": "^0.0.1"
+    "buffer2address": "^0.0.2"
   },
   "devDependencies": {
     "c8": "^7.9.0",
