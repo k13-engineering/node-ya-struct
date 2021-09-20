@@ -125,6 +125,54 @@ describe("abi", () => {
     });
   });
 
+  describe("alignment models", () => {
+    describe("LP64 - gcc", () => {
+      const endianness = "LE";
+      const dataModel = "LP64";
+      const alignmentModel = struct.alignmentModels.LP64.gcc;
+
+      it("should align Int8 correctly", () => {
+        const def = struct.define(({ field }) => {
+          field.Int8("myfield1");
+          field.Int8("myfield2");
+        }).abi({ endianness, dataModel, alignmentModel });
+
+        assert.strictEqual(def.offsetof("myfield1"), 0);
+        assert.strictEqual(def.offsetof("myfield2"), 1);
+      });
+
+      it("should align Int16 correctly", () => {
+        const def = struct.define(({ field }) => {
+          field.Int8("myfield1");
+          field.Int16LE("myfield2");
+        }).abi({ endianness, dataModel, alignmentModel });
+
+        assert.strictEqual(def.offsetof("myfield1"), 0);
+        assert.strictEqual(def.offsetof("myfield2"), 2);
+      });
+
+      it("should align Int32 correctly", () => {
+        const def = struct.define(({ field }) => {
+          field.Int8("myfield1");
+          field.Int32LE("myfield2");
+        }).abi({ endianness, dataModel, alignmentModel });
+
+        assert.strictEqual(def.offsetof("myfield1"), 0);
+        assert.strictEqual(def.offsetof("myfield2"), 4);
+      });
+
+      it("should align Int64 correctly", () => {
+        const def = struct.define(({ field }) => {
+          field.Int8("myfield1");
+          field.Int64LE("myfield2");
+        }).abi({ endianness, dataModel, alignmentModel });
+
+        assert.strictEqual(def.offsetof("myfield1"), 0);
+        assert.strictEqual(def.offsetof("myfield2"), 8);
+      });
+    });
+  })
+
   const supportedAbiPlatforms = [
     {
       "arch": "x64",
