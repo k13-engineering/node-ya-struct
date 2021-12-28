@@ -5,34 +5,29 @@ import struct from "../lib/index.js";
 import assert from "assert";
 
 describe("abi", () => {
-  it("should not support endian-less types without ABI specification", () => {
-    assert.throws(() => {
-      struct.define(({ field }) => {
-        field.UInt32("myfield1");
-        field.UInt32("myfield2");
-      }).abi({});
-    });
-  });
-
   const testEndiannessFor = ({ endianness }) => {
     it("should support structure definition", () => {
-      const def = struct.define(({ field }) => {
-        field.UInt32("myfield1");
-        field.UInt32("myfield2");
-      }).abi({ endianness });
+      const def = struct
+        .define(({ field }) => {
+          field.UInt32("myfield1");
+          field.UInt32("myfield2");
+        })
+        .abi({ endianness });
 
       assert.strictEqual(def.size, 8);
-      assert.strictEqual(def.offsetof("myfield1"), 0);
-      assert.strictEqual(def.sizeof("myfield1"), 4);
-      assert.strictEqual(def.offsetof("myfield2"), 4);
-      assert.strictEqual(def.sizeof("myfield2"), 4);
+      assert.strictEqual(def.fields.myfield1.offset, 0);
+      assert.strictEqual(def.fields.myfield1.size, 4);
+      assert.strictEqual(def.fields.myfield2.offset, 4);
+      assert.strictEqual(def.fields.myfield2.size, 4);
     });
 
     it("should parse data correctly", () => {
-      const def = struct.define(({ field }) => {
-        field.UInt32("myfield1");
-        field.UInt32("myfield2");
-      }).abi({ endianness });
+      const def = struct
+        .define(({ field }) => {
+          field.UInt32("myfield1");
+          field.UInt32("myfield2");
+        })
+        .abi({ endianness });
 
       const buf = def.format({});
 
@@ -45,14 +40,16 @@ describe("abi", () => {
     });
 
     it("should format data correctly", () => {
-      const def = struct.define(({ field }) => {
-        field.UInt32("myfield1");
-        field.UInt32("myfield2");
-      }).abi({ endianness });
+      const def = struct
+        .define(({ field }) => {
+          field.UInt32("myfield1");
+          field.UInt32("myfield2");
+        })
+        .abi({ endianness });
 
       const buf = def.format({
-        "myfield1": 20n,
-        "myfield2": 30n
+        myfield1: 20n,
+        myfield2: 30n,
       });
 
       const myfield1 = buf[`readUInt32${endianness}`](0);
@@ -64,11 +61,11 @@ describe("abi", () => {
   };
 
   describe("little endian", () => {
-    testEndiannessFor({ "endianness": "LE" });
+    testEndiannessFor({ endianness: "LE" });
   });
 
   describe("big endian", () => {
-    testEndiannessFor({ "endianness": "BE" });
+    testEndiannessFor({ endianness: "BE" });
   });
 
   describe("data models", () => {
@@ -77,23 +74,27 @@ describe("abi", () => {
       const dataModel = "LP64";
 
       it("should support structure definition", () => {
-        const def = struct.define(({ field }) => {
-          field.Pointer("myfield1");
-          field.Pointer("myfield2");
-        }).abi({ endianness, dataModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Pointer("myfield1");
+            field.Pointer("myfield2");
+          })
+          .abi({ endianness, dataModel });
 
         assert.strictEqual(def.size, 16);
-        assert.strictEqual(def.offsetof("myfield1"), 0);
-        assert.strictEqual(def.sizeof("myfield1"), 8);
-        assert.strictEqual(def.offsetof("myfield2"), 8);
-        assert.strictEqual(def.sizeof("myfield2"), 8);
+        assert.strictEqual(def.fields.myfield1.offset, 0);
+        assert.strictEqual(def.fields.myfield1.size, 8);
+        assert.strictEqual(def.fields.myfield2.offset, 8);
+        assert.strictEqual(def.fields.myfield2.size, 8);
       });
 
       it("should parse data correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Pointer("myfield1");
-          field.Pointer("myfield2");
-        }).abi({ endianness, dataModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Pointer("myfield1");
+            field.Pointer("myfield2");
+          })
+          .abi({ endianness, dataModel });
 
         const buf = def.format({});
 
@@ -106,14 +107,16 @@ describe("abi", () => {
       });
 
       it("should format data correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Pointer("myfield1");
-          field.Pointer("myfield2");
-        }).abi({ endianness, dataModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Pointer("myfield1");
+            field.Pointer("myfield2");
+          })
+          .abi({ endianness, dataModel });
 
         const buf = def.format({
-          "myfield1": 20n,
-          "myfield2": 30n
+          myfield1: 20n,
+          myfield2: 30n,
         });
 
         const myfield1 = buf.readBigUInt64LE(0);
@@ -129,55 +132,63 @@ describe("abi", () => {
     describe("LP64 - gcc", () => {
       const endianness = "LE";
       const dataModel = "LP64";
-      const alignmentModel = struct.alignmentModels.LP64.gcc;
+      const compiler = "gcc";
 
       it("should align Int8 correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Int8("myfield1");
-          field.Int8("myfield2");
-        }).abi({ endianness, dataModel, alignmentModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Int8("myfield1");
+            field.Int8("myfield2");
+          })
+          .abi({ endianness, dataModel, compiler });
 
-        assert.strictEqual(def.offsetof("myfield1"), 0);
-        assert.strictEqual(def.offsetof("myfield2"), 1);
+        assert.strictEqual(def.fields.myfield1.offset, 0);
+        assert.strictEqual(def.fields.myfield2.offset, 1);
       });
 
       it("should align Int16 correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Int8("myfield1");
-          field.Int16LE("myfield2");
-        }).abi({ endianness, dataModel, alignmentModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Int8("myfield1");
+            field.Int16LE("myfield2");
+          })
+          .abi({ endianness, dataModel, compiler });
 
-        assert.strictEqual(def.offsetof("myfield1"), 0);
-        assert.strictEqual(def.offsetof("myfield2"), 2);
+        assert.strictEqual(def.fields.myfield1.offset, 0);
+        assert.strictEqual(def.fields.myfield2.offset, 2);
       });
 
       it("should align Int32 correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Int8("myfield1");
-          field.Int32LE("myfield2");
-        }).abi({ endianness, dataModel, alignmentModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Int8("myfield1");
+            field.Int32LE("myfield2");
+          })
+          .abi({ endianness, dataModel, compiler });
 
-        assert.strictEqual(def.offsetof("myfield1"), 0);
-        assert.strictEqual(def.offsetof("myfield2"), 4);
+        assert.strictEqual(def.fields.myfield1.offset, 0);
+        assert.strictEqual(def.fields.myfield2.offset, 4);
       });
 
       it("should align Int64 correctly", () => {
-        const def = struct.define(({ field }) => {
-          field.Int8("myfield1");
-          field.Int64LE("myfield2");
-        }).abi({ endianness, dataModel, alignmentModel });
+        const def = struct
+          .define(({ field }) => {
+            field.Int8("myfield1");
+            field.Int64LE("myfield2");
+          })
+          .abi({ endianness, dataModel, compiler });
 
-        assert.strictEqual(def.offsetof("myfield1"), 0);
-        assert.strictEqual(def.offsetof("myfield2"), 8);
+        assert.strictEqual(def.fields.myfield1.offset, 0);
+        assert.strictEqual(def.fields.myfield2.offset, 8);
       });
     });
   });
 
   const supportedAbiPlatforms = [
     {
-      "arch": "x64",
-      "platform": "linux"
-    }
+      arch: "x64",
+      platform: "linux",
+    },
   ];
 
   const isHostSupported = supportedAbiPlatforms.some(({ arch, platform }) => {

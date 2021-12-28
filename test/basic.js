@@ -6,23 +6,27 @@ import assert from "assert";
 
 describe("basic", () => {
   it("should support structure definition", () => {
-    const def = struct.define(({ field }) => {
-      field.UInt32LE("myfield1");
-      field.UInt32LE("myfield2");
-    }).abi({});
+    const def = struct
+      .define(({ field }) => {
+        field.UInt32LE("myfield1");
+        field.UInt32LE("myfield2");
+      })
+      .abi({});
 
     assert.strictEqual(def.size, 8);
-    assert.strictEqual(def.offsetof("myfield1"), 0);
-    assert.strictEqual(def.sizeof("myfield1"), 4);
-    assert.strictEqual(def.offsetof("myfield2"), 4);
-    assert.strictEqual(def.sizeof("myfield2"), 4);
+    assert.strictEqual(def.fields.myfield1.offset, 0);
+    assert.strictEqual(def.fields.myfield1.size, 4);
+    assert.strictEqual(def.fields.myfield2.offset, 4);
+    assert.strictEqual(def.fields.myfield2.size, 4);
   });
 
   it("should allow empty instantiation", () => {
-    const def = struct.define(({ field }) => {
-      field.UInt32LE("myfield1");
-      field.UInt32LE("myfield2");
-    }).abi({});
+    const def = struct
+      .define(({ field }) => {
+        field.UInt32LE("myfield1");
+        field.UInt32LE("myfield2");
+      })
+      .abi({});
 
     const buf = def.format({});
 
@@ -32,14 +36,16 @@ describe("basic", () => {
   });
 
   it("should format data correctly", () => {
-    const def = struct.define(({ field }) => {
-      field.UInt32LE("myfield1");
-      field.UInt32LE("myfield2");
-    }).abi({});
+    const def = struct
+      .define(({ field }) => {
+        field.UInt32LE("myfield1");
+        field.UInt32LE("myfield2");
+      })
+      .abi({});
 
     const buf = def.format({
-      "myfield1": 10n,
-      "myfield2": 20n
+      myfield1: 10n,
+      myfield2: 20n,
     });
 
     assert.strictEqual(buf.length, 8);
@@ -48,13 +54,15 @@ describe("basic", () => {
   });
 
   it("should partial-format data correctly", () => {
-    const def = struct.define(({ field }) => {
-      field.UInt32LE("myfield1");
-      field.UInt32LE("myfield2");
-    }).abi({});
+    const def = struct
+      .define(({ field }) => {
+        field.UInt32LE("myfield1");
+        field.UInt32LE("myfield2");
+      })
+      .abi({});
 
     const buf = def.format({
-      "myfield2": 20n
+      myfield2: 20n,
     });
 
     assert.strictEqual(buf.length, 8);
@@ -63,10 +71,12 @@ describe("basic", () => {
   });
 
   it("should parse data correctly", () => {
-    const def = struct.define(({ field }) => {
-      field.UInt32LE("myfield1");
-      field.UInt32LE("myfield2");
-    }).abi({});
+    const def = struct
+      .define(({ field }) => {
+        field.UInt32LE("myfield1");
+        field.UInt32LE("myfield2");
+      })
+      .abi({});
 
     const buf = def.format({});
 
