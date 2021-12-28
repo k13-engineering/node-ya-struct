@@ -1,7 +1,7 @@
 {
   "name": "ya-struct",
   "type": "module",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Yet Another Node.js Structure API",
   "main": "lib/index.js",
   "scripts": {
