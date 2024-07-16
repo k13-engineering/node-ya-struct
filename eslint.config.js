@@ -1,13 +1,4 @@
-{
-  "parserOptions": {
-    "ecmaVersion": 2021,
-    "sourceType": "module",
-    "requireConfigFile": false
-  },
-  "env": {
-    "node": true,
-    "es2020": true
-  },
+export default {
   "rules": {
     "global-require": "off",
     "quote-props": ["warn", "consistent-as-needed"],
@@ -87,6 +78,5 @@
     "eol-last": ["error", "always"],
     "func-call-spacing": ["error", "never"],
     "semi": ["error", "always"]
-  },
-  "extends": "eslint:recommended"
+  }
 }
