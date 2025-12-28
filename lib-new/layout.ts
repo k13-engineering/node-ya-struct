@@ -1,5 +1,6 @@
 import { align, type TAbi } from "./common.ts";
 import type { TFieldType } from "./types/index.ts";
+import nodeUtil from "node:util";
 
 type TLayoutedField = {
     readonly type: "integer";
@@ -141,6 +142,30 @@ const layoutString = ({
     };
 };
 
+const layoutArray = ({
+    definition,
+    abi,
+    currentOffsetInBits
+}: {
+    definition: TFieldType & { type: "array" },
+    abi: TAbi,
+    currentOffsetInBits: number
+}): TLayoutedField => {
+
+    const elementLayout = layout({ definition: definition.elementType, abi, currentOffsetInBits: 0 });
+
+    // TODO: handle alignment
+    const sizeInBits = elementLayout.sizeInBits * definition.length;
+
+    return {
+        type: "array",
+        offsetInBits: currentOffsetInBits,
+        sizeInBits,
+        elementType: elementLayout,
+        length: definition.length
+    };
+};
+
 const layout = ({
     definition,
     abi,
@@ -161,6 +186,10 @@ const layout = ({
 
     if (definition.type === "string") {
         return layoutString({ definition, abi, currentOffsetInBits });
+    }
+
+    if (definition.type === "array") {
+        return layoutArray({ definition, abi, currentOffsetInBits });
     }
 
     throw Error("not implemented yet");

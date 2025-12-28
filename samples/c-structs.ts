@@ -21,6 +21,14 @@ const struct = define({
             { name: "field1", definition: UInt32 },
             { name: "field2", definition: UInt32 },
             { name: "field3", definition: ascii({ length: 16 }) },
+            {
+                name: "array1",
+                definition: {
+                    type: "array",
+                    elementType: UInt32,
+                    length: 4
+                }
+            }
             // { name: "field4", definition: nestedStruct.definition }
         ],
         packed: false,
@@ -43,6 +51,7 @@ const data = struct.format({
         //     nestedField1: 789n,
         //     nestedField2: 101112n
         // }
+        array1: [1n, 2n, 3n, 4n]
     }
 });
 

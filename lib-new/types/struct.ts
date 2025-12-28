@@ -3,7 +3,9 @@ import type { TLayoutedField } from "../layout.ts";
 import { createIntegerParser } from "./integer.ts";
 import { createPointerParser } from "./pointer.ts";
 import { createStringParser } from "./string.ts";
+import { createArrayParser } from "./array.ts";
 import type { TValueParser } from "./value.ts";
+import type { TFieldType } from "./index.ts";
 
 type TStructParser = TValueParser<Record<string, any>>;
 
@@ -49,6 +51,15 @@ const createStructParser = ({
             });
         }
 
+        if (field.definition.type === "array") {
+            return createArrayParser({
+                // TODO: cast should not be necessary
+                elementType: field.definition.elementType as TFieldType,
+                endianness,
+                length: field.definition.length
+            });
+        }
+
         throw Error("not implemented yet");
     });
 
@@ -85,7 +96,12 @@ const createStructParser = ({
             }
 
             const fieldTarget = new Uint8Array(target.buffer, target.byteOffset + (field.definition.offsetInBits / 8));
-            fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits });
+
+            try {
+                fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits });
+            } catch (ex) {
+                throw Error(`failed to format field "${field.name}"`, { cause: ex });
+            }
         });
     };
 
