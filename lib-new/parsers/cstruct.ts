@@ -21,6 +21,9 @@ const createCStructParserFactory = ({
     const addCStruct = () => {
     };
 
+    const add = ({ name, type }) => {
+    };
+
     const build = () => {
 
         const abi = () => {
