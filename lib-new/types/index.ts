@@ -42,6 +42,20 @@ type TFieldType = {
 
 type TBasicFieldType = Exclude<TFieldType, { type: "c-type" }>;
 
+const Int16 = {
+    type: "integer",
+    sizeInBits: 16,
+    signed: true,
+    fixedAbi: {}
+} as const satisfies TFieldType;
+
+const UInt16 = {
+    type: "integer",
+    sizeInBits: 16,
+    signed: false,
+    fixedAbi: {}
+} as const satisfies TFieldType;
+
 const Int32 = {
     type: "integer",
     sizeInBits: 32,
@@ -91,6 +105,8 @@ export type {
 };
 
 export {
+    Int16,
+    UInt16,
     Int32,
     Int64,
     UInt32,

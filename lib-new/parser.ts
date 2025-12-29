@@ -28,7 +28,7 @@ type Simplify<T> = {
 type TParsedValueOfDefinition<T extends TFieldType> = Simplify<FieldValue<T>>;
 
 type TParser<T extends TFieldType> = {
-
+    size: number;
     parse: ({ data }: { data: Uint8Array }) => TParsedValueOfDefinition<T>;
     format: ({ value }: { value: TParsedValueOfDefinition<T> }) => Uint8Array;
 };
@@ -40,6 +40,8 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
         type P = TParser<T>;
 
         const l = layout({ definition, abi, currentOffsetInBits: 0 });
+
+        const size = Math.ceil(l.sizeInBits / 8);
 
         // console.log(l);
 
@@ -66,6 +68,7 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
         };
 
         return {
+            size,
             parse,
             format
         };
