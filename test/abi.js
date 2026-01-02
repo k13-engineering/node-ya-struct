@@ -3,16 +3,44 @@
 
 import struct from "../lib/index.js";
 import assert from "assert";
+import marshaller from "../lib/marshaller.js";
 
 describe("abi", () => {
   const testEndiannessFor = ({ endianness }) => {
     it("should support structure definition", () => {
+
+      struct.defineField(({ field }) => {
+        field.UInt32("myfield1");
+      });
+
       const def = struct
-        .define(({ field }) => {
+        .define(({ add, abi }) => {
+
+          add({ name: "myfield1", type: struct.types.UInt32.forAbi(abi) });
+          add({ name: "myfield2", type: struct.types.InlineCString({ length: 32 }).forTarget(abi) });
+
+          add({
+            name: "myfield3",
+            type: struct.types.Array({
+              length: 10,
+              elementType: struct.types.UInt32(),
+            }),
+          });
+
+          add({
+            name: "nested",
+            type: def,
+          });
+
           field.UInt32("myfield1");
           field.UInt32("myfield2");
+
+          field.Uint32BE("myfield3");
+          field.CString({ name: "myfield4", length: 10 });
+
+          field.Array({ name: "myfield5", elementType: def });
         })
-        .abi({ endianness });
+        .forAbi({ endianness });
 
       assert.strictEqual(def.size, 8);
       assert.strictEqual(def.fields.myfield1.offset, 0);
