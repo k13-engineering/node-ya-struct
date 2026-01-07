@@ -85,7 +85,7 @@ const UInt64: TFieldType = {
   fixedAbi: {}
 } as const;
 
-const ascii = ({ length }: { length: number }): TFieldType => {
+const ascii = ({ length }: { length: number }) => {
   return {
     type: "string",
     charSizeInBits: 8,
