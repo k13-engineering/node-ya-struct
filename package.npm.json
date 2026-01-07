@@ -1,0 +1,25 @@
+{
+  "name": "ya-struct",
+  "description": "Yet Another Node.js Structure API",
+  "main": "dist/lib/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/k13-engineering/node-ya-struct.git"
+  },
+  "keywords": [
+    "structure",
+    "struct",
+    "abi",
+    "endian",
+    "alignment",
+    "c",
+    "c++",
+    "layout"
+  ],
+  "author": "Simon Kadisch",
+  "license": "LGPL 2.1",
+  "bugs": {
+    "url": "https://github.com/k13-engineering/node-ya-struct/issues"
+  },
+  "homepage": "https://github.com/k13-engineering/node-ya-struct#readme"
+}
