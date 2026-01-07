@@ -106,7 +106,7 @@ export type {
     TPrimitiveBasicFieldType
 };
 
-export {
+const types = {
     Int16,
     UInt16,
     Int32,
@@ -115,4 +115,8 @@ export {
     UInt64,
     ascii,
     pointer
+} as const;
+
+export {
+    types
 };

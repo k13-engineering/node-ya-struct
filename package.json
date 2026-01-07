@@ -5,8 +5,9 @@
   "description": "Yet Another Node.js Structure API",
   "main": "lib/index.js",
   "scripts": {
-    "test": "c8 --reporter lcov --reporter html --reporter text mocha",
-    "eslint": "eslint ."
+    "build": "rm -rf dist/ && deno-node-build --root . --out dist/ --entry lib/index.ts",
+    "test": "c8 --reporter lcov --reporter html --reporter text --all --src lib/ tsx test/index.js",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -29,14 +30,16 @@
   },
   "homepage": "https://github.com/k13-engineering/node-ya-struct#readme",
   "dependencies": {
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^25.0.3",
-    "buffer2address": "^0.0.2"
+    "@eslint/js": "^9.39.2",
+    "c8": "^10.1.3",
+    "eslint": "^9.39.2",
+    "mocha": "^11.7.5"
   },
   "devDependencies": {
-    "c8": "^7.9.0",
-    "eslint": "^7.32.0",
-    "mocha": "^9.2.2",
+    "@k13engineering/releasetool": "^0.0.5",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^25.0.3",
+    "deno-node": "^0.0.12",
     "node-archibald": "^0.0.6",
     "tmp-promise": "^3.0.3"
   }
