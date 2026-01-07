@@ -40,6 +40,17 @@ type TLayoutedField = {
     readonly sizeInBits: number;
 };
 
+const pointerSizeInBitsByDataModel = ({ dataModel }: { dataModel: TAbi["dataModel"] }): number => {
+    switch (dataModel) {
+        case "LP64":
+            return 64;
+        case "ILP32":
+            return 32;
+        default:
+            throw Error(`unsupported data model "${dataModel}" for pointer size determination`);
+    }
+};
+
 const layoutStruct = ({
     definition,
     abi,
@@ -54,7 +65,7 @@ const layoutStruct = ({
     const structAlignmentInBits = 64;
     // const fieldAlignmentInBits = 64;
     const fieldAlignmentInBits = 1;
-    const pointerSizeInBits = 64; // TODO: get from ABI
+    const pointerSizeInBits = pointerSizeInBitsByDataModel({ dataModel: abi.dataModel });
 
     let currentOffsetInBits = align({ offset: initialOffsetInBits, alignment: structAlignmentInBits });
     let layoutedFields: (TLayoutedField & { type: "struct" })["fields"] = [];
@@ -71,9 +82,16 @@ const layoutStruct = ({
         if (!definition.packed) {
             switch (normalizedField.type) {
                 case "integer":
-                case "float":{
+                case "float": {
                     const sizeInBits = normalizedField.sizeInBits;
-                    currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
+
+                    if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
+                        // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
+                        currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
+                    } else {
+                        currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
+                    }
+
                     break;
                 }
                 case "string": {
@@ -141,8 +159,7 @@ const layoutPrimitive = ({
         };
     }
 
-    // TODO: implement pointer size based on ABI
-    const pointerSizeInBits = 64;
+    const pointerSizeInBits = pointerSizeInBitsByDataModel({ dataModel: abi.dataModel });
 
     return {
         type: definition.type,
@@ -226,7 +243,7 @@ const layout = ({
     if (definition.type === "c-type") {
         const cTypeNormalizer = createCTypeNormalizer({ abi });
         const basicField = cTypeNormalizer.normalize({ cField: definition });
-        
+
         return layout({ definition: basicField, abi, currentOffsetInBits });
     }
 

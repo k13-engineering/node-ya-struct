@@ -98,8 +98,88 @@ const cTypeMappings: TPartialCTypeMappings = {
                 fixedAbi: {}
             },
         }
+    },
+
+    ILP32: {
+        gcc: {
+            char: {
+                type: "integer",
+                sizeInBits: 8,
+                fixedAbi: {},
+                signed: true
+            },
+            "unsigned char": {
+                type: "integer",
+                sizeInBits: 8,
+                fixedAbi: {},
+                signed: false
+            },
+            short: {
+                type: "integer",
+                sizeInBits: 16,
+                fixedAbi: {},
+                signed: true
+            },
+            "unsigned short": {
+                type: "integer",
+                sizeInBits: 16,
+                fixedAbi: {},
+                signed: false
+            },
+            int: {
+                type: "integer",
+                sizeInBits: 32,
+                fixedAbi: {},
+                signed: true
+            },
+            "unsigned int": {
+                type: "integer",
+                sizeInBits: 32,
+                fixedAbi: {},
+                signed: false
+            },
+            long: {
+                type: "integer",
+                sizeInBits: 32,
+                fixedAbi: {},
+                signed: true
+            },
+            "unsigned long": {
+                type: "integer",
+                sizeInBits: 32,
+                fixedAbi: {},
+                signed: false
+            },
+            "long long": {
+                type: "integer",
+                sizeInBits: 64,
+                fixedAbi: {},
+                signed: true
+            },
+            "unsigned long long": {
+                type: "integer",
+                sizeInBits: 64,
+                fixedAbi: {},
+                signed: false
+            },
+            float: {
+                type: "float",
+                sizeInBits: 32,
+                fixedAbi: {}
+            },
+            double: {
+                type: "float",
+                sizeInBits: 64,
+                fixedAbi: {}
+            },
+            "long double": {
+                type: "float",
+                sizeInBits: 128,
+                fixedAbi: {}
+            },
+        }
     }
-}
+};
 
 const createCTypeNormalizer = ({
     abi

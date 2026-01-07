@@ -73,6 +73,7 @@ const defineStructTestFor = ({
             definitions: cDefinition,
             structName,
             fieldNames: definition.fields.map((f) => f.name),
+            bits: dataModel === "LP64" ? 64 : 32
         });
 
         const def = define({
@@ -81,15 +82,15 @@ const defineStructTestFor = ({
 
         const parser = def.parser({
             abi: {
-                compiler: "gcc",
-                dataModel: "LP64",
+                compiler,
+                dataModel,
                 endianness: "little"
             }
         });
 
         nodeAssert.strictEqual(parser.layout.type, "struct");
 
-        let expectedLayout = {};
+        let ourLayout = {};
 
         parser.layout.fields.forEach((fieldLayout) => {
             const correspondinCLayout = cLayout[fieldLayout.name];
@@ -98,8 +99,8 @@ const defineStructTestFor = ({
             nodeAssert.ok(fieldLayout.definition.offsetInBits % 8 === 0);
             nodeAssert.ok(fieldLayout.definition.sizeInBits % 8 === 0);
 
-            expectedLayout = {
-                ...expectedLayout,
+            ourLayout = {
+                ...ourLayout,
                 [fieldLayout.name]: {
                     offset: fieldLayout.definition.offsetInBits / 8,
                     length: fieldLayout.definition.sizeInBits / 8
@@ -107,7 +108,7 @@ const defineStructTestFor = ({
             };
         });
 
-        nodeAssert.deepStrictEqual(cLayout, expectedLayout);
+        nodeAssert.deepStrictEqual(ourLayout, cLayout);
     });
 };
 
@@ -127,15 +128,17 @@ const cField = ({ name, cType }: { name: string; cType: TCFieldType }): TSingleS
 describe("c-structs", () => {
 
     const dataModels: TDataModel[] = [
-        "LP64"
+        "LP64",
+        "ILP32"
     ];
 
     const compilers: TCompiler[] = [
         "gcc"
     ];
 
-    const fieldsDefinitions: { fields: TStructDefinition["fields"] }[] = [
+    const fieldsDefinitions: { structName: string, fields: TStructDefinition["fields"] }[] = [
         {
+            structName: "definition #1",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 cField({ name: "b", cType: "int" }),
@@ -149,6 +152,7 @@ describe("c-structs", () => {
         //     ]
         // }
         {
+            structName: "definition #2",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 cField({ name: "b", cType: "char" }),
@@ -156,6 +160,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #3",
             fields: [
                 cField({ name: "a", cType: "unsigned char" }),
                 cField({ name: "b", cType: "unsigned char" }),
@@ -163,6 +168,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #4",
             fields: [
                 cField({ name: "a", cType: "short" }),
                 cField({ name: "b", cType: "short" }),
@@ -170,6 +176,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #5",
             fields: [
                 cField({ name: "a", cType: "unsigned short" }),
                 cField({ name: "b", cType: "unsigned short" }),
@@ -177,6 +184,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #6",
             fields: [
                 cField({ name: "a", cType: "int" }),
                 cField({ name: "b", cType: "int" }),
@@ -184,6 +192,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #7",
             fields: [
                 cField({ name: "a", cType: "unsigned int" }),
                 cField({ name: "b", cType: "unsigned int" }),
@@ -191,6 +200,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #8",
             fields: [
                 cField({ name: "a", cType: "long" }),
                 cField({ name: "b", cType: "long" }),
@@ -198,6 +208,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #9",
             fields: [
                 cField({ name: "a", cType: "unsigned long" }),
                 cField({ name: "b", cType: "unsigned long" }),
@@ -205,6 +216,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #10",
             fields: [
                 cField({ name: "a", cType: "long long" }),
                 cField({ name: "b", cType: "long long" }),
@@ -212,14 +224,15 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #11",
             fields: [
                 cField({ name: "a", cType: "unsigned long long" }),
                 cField({ name: "b", cType: "unsigned long long" }),
                 cField({ name: "c", cType: "unsigned long long" }),
             ]
         },
-
         {
+            structName: "definition #12",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 cField({ name: "b", cType: "short" }),
@@ -229,6 +242,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #13",
             fields: [
                 cField({ name: "a", cType: "unsigned char" }),
                 cField({ name: "b", cType: "unsigned short" }),
@@ -238,6 +252,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #14",
             fields: [
                 cField({ name: "a", cType: "long long" }),
                 cField({ name: "b", cType: "long" }),
@@ -247,6 +262,7 @@ describe("c-structs", () => {
             ]
         },
         {
+            structName: "definition #15",
             fields: [
                 cField({ name: "a", cType: "unsigned long long" }),
                 cField({ name: "b", cType: "unsigned long" }),
@@ -257,6 +273,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #16",
             fields: [
                 cField({ name: "a", cType: "int" }),
                 {
@@ -273,6 +290,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #17",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 {
@@ -287,6 +305,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #18",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 {
@@ -301,6 +320,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #19",
             fields: [
                 cField({ name: "a", cType: "char" }),
                 {
@@ -315,6 +335,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #20",
             fields: [
                 cField({ name: "a", cType: "unsigned long" }),
                 {
@@ -329,6 +350,7 @@ describe("c-structs", () => {
         },
 
         {
+            structName: "definition #21",
             fields: [
                 {
                     name: "a",
@@ -355,7 +377,7 @@ describe("c-structs", () => {
         }
     ];
 
-    fieldsDefinitions.forEach(({ fields }, idx) => {
+    fieldsDefinitions.forEach(({ fields, structName }, idx) => {
         [
             false,
             true
@@ -367,7 +389,7 @@ describe("c-structs", () => {
                         dataModel,
                         compiler,
                         fields,
-                        structName: `definition #${idx + 1}`
+                        structName
                     });
                 });
             });

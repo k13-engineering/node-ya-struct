@@ -16,14 +16,14 @@ const exec = ({ command }: { command: string }) => {
     });
 };
 
-const compileAndRun = async ({ code }: { code: string }) => {
+const compileAndRun = async ({ code, bits }: { code: string, bits: 64 | 32 }) => {
     return await tmp.withDir(async (dir) => {
         const sourceFile = path.resolve(dir.path, "main.c");
         const binaryFile = path.resolve(dir.path, "main.out");
 
         await fs.promises.writeFile(sourceFile, code);
         try {
-            await exec({ command: `gcc "${sourceFile}" -o "${binaryFile}"` });
+            await exec({ command: `gcc -m${bits} "${sourceFile}" -o "${binaryFile}"` });
             try {
                 return await exec({ command: `"${binaryFile}"` });
             } finally {
@@ -39,10 +39,12 @@ const determineCCompilerStructLayout = async ({
     definitions,
     structName,
     fieldNames,
+    bits
 }: {
     definitions: string,
     structName: string,
     fieldNames: string[],
+    bits: 64 | 32
 }) => {
     const code = `
 
@@ -71,7 +73,7 @@ const determineCCompilerStructLayout = async ({
     }
   `;
 
-    const { stdout } = await compileAndRun({ code });
+    const { stdout } = await compileAndRun({ code, bits });
 
     const parsed = JSON.parse(stdout.trim());
 
