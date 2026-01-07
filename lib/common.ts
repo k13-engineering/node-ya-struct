@@ -3,28 +3,28 @@ type TCompiler = "gcc";
 type TEndianness = "little" | "big";
 
 type TAbi = {
-    endianness: TEndianness;
-    compiler: TCompiler;
-    dataModel: TDataModel;
+  endianness: TEndianness;
+  compiler: TCompiler;
+  dataModel: TDataModel;
 };
 
 const align = ({ offset, alignment }: { offset: number; alignment: number }): number => {
-    const remainder = offset % alignment;
-    if (remainder === 0) {
-        return offset;
-    }
+  const remainder = offset % alignment;
+  if (remainder === 0) {
+    return offset;
+  }
 
-    return offset + (alignment - remainder);
+  return offset + (alignment - remainder);
 };
 
 export type {
-    TDataModel,
-    TCompiler,
-    TEndianness,
+  TDataModel,
+  TCompiler,
+  TEndianness,
 
-    TAbi
+  TAbi
 };
 
 export {
-    align
+  align
 };

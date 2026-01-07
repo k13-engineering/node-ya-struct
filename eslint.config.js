@@ -101,7 +101,7 @@ export default tseslint.config(
       "no-multi-spaces": "error",
       "no-proto": "error",
       "yoda": "error",
-      "indent": ["error", 2],
+      "indent": ["error", 2, { SwitchCase: 1 }],
       "object-curly-spacing": ["error", "always"],
 
       "object-curly-newline": ["error", {
