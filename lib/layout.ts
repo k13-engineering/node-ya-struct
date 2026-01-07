@@ -95,6 +95,22 @@ const layoutStruct = ({
 
           break;
         }
+        case "array": {
+
+          // TODO: this is probably not sufficient for all cases
+
+          // eslint-disable-next-line no-use-before-define
+          const { sizeInBits } = layout({ definition: normalizedField.elementType, abi, currentOffsetInBits: 0 });
+
+          if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
+            // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
+            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
+          } else {
+            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
+          }
+
+          break;
+        }
         case "string": {
           // no special alignment needed
           break;
@@ -224,7 +240,7 @@ const layout = ({
   definition: TFieldType,
   abi: TAbi,
   currentOffsetInBits: number
-// eslint-disable-next-line complexity
+  // eslint-disable-next-line complexity
 }): TLayoutedField => {
 
   if (definition.type === "struct") {
