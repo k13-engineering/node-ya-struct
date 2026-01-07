@@ -41,6 +41,7 @@ type TFieldType = {
 };
 
 type TBasicFieldType = Exclude<TFieldType, { type: "c-type" }>;
+type TPrimitiveBasicFieldType = Exclude<TBasicFieldType, { type: "array" } | { type: "struct" } | { type: "string" }>;
 
 const Int16 = {
     type: "integer",
@@ -101,7 +102,8 @@ const pointer = {
 export type {
     TBasicFieldType,
     TFieldType,
-    TCFieldType
+    TCFieldType,
+    TPrimitiveBasicFieldType
 };
 
 export {

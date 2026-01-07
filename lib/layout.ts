@@ -1,4 +1,5 @@
 import { align, type TAbi } from "./common.ts";
+import { createCTypeNormalizer } from "./types/c-types.ts";
 import type { TFieldType } from "./types/index.ts";
 import nodeUtil from "node:util";
 
@@ -53,12 +54,42 @@ const layoutStruct = ({
     const structAlignmentInBits = 64;
     // const fieldAlignmentInBits = 64;
     const fieldAlignmentInBits = 1;
+    const pointerSizeInBits = 64; // TODO: get from ABI
 
     let currentOffsetInBits = align({ offset: initialOffsetInBits, alignment: structAlignmentInBits });
     let layoutedFields: (TLayoutedField & { type: "struct" })["fields"] = [];
 
     definition.fields.forEach((field) => {
-        const fieldLayout = layout({ definition: field.definition, abi, currentOffsetInBits });
+
+        let normalizedField: TFieldType = field.definition;
+
+        if (field.definition.type === "c-type") {
+            const cTypeNormalizer = createCTypeNormalizer({ abi });
+            normalizedField = cTypeNormalizer.normalize({ cField: field.definition });
+        }
+
+        if (!definition.packed) {
+            switch (normalizedField.type) {
+                case "integer":
+                case "float":{
+                    const sizeInBits = normalizedField.sizeInBits;
+                    currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
+                    break;
+                }
+                case "string": {
+                    // no special alignment needed
+                    break;
+                }
+                case "pointer": {
+                    currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: pointerSizeInBits });
+                    break;
+                }
+                default:
+                    throw Error(`unsupported field type for struct layout: ${nodeUtil.inspect(field.definition)}`);
+            }
+        }
+
+        const fieldLayout = layout({ definition: normalizedField, abi, currentOffsetInBits });
 
         layoutedFields = [
             ...layoutedFields,
@@ -177,7 +208,7 @@ const layout = ({
 }): TLayoutedField => {
 
     if (definition.type === "struct") {
-        return layoutStruct({ definition, abi, currentOffsetInBits });        
+        return layoutStruct({ definition, abi, currentOffsetInBits });
     }
 
     if (definition.type === "integer" || definition.type === "float" || definition.type === "pointer") {
@@ -190,6 +221,13 @@ const layout = ({
 
     if (definition.type === "array") {
         return layoutArray({ definition, abi, currentOffsetInBits });
+    }
+
+    if (definition.type === "c-type") {
+        const cTypeNormalizer = createCTypeNormalizer({ abi });
+        const basicField = cTypeNormalizer.normalize({ cField: definition });
+        
+        return layout({ definition: basicField, abi, currentOffsetInBits });
     }
 
     throw Error("not implemented yet");

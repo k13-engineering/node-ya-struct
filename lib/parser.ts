@@ -1,5 +1,5 @@
 import type { TAbi } from "./common.ts";
-import { layout } from "./layout.ts";
+import { layout, type TLayoutedField } from "./layout.ts";
 import type { TFieldType } from "./types/index.ts";
 import { createStructParser } from "./types/struct.ts";
 import type { TValueParser } from "./types/value.ts";
@@ -31,6 +31,7 @@ type TParser<T extends TFieldType> = {
     size: number;
     parse: ({ data }: { data: Uint8Array }) => TParsedValueOfDefinition<T>;
     format: ({ value }: { value: TParsedValueOfDefinition<T> }) => Uint8Array;
+    layout: TLayoutedField;
 };
 
 const define = <const T extends TFieldType>({ definition }: { definition: T }) => {
@@ -70,7 +71,8 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
         return {
             size,
             parse,
-            format
+            format,
+            layout: l
         };
     };
 
