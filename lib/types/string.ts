@@ -37,7 +37,7 @@ const createStringParser = ({ length }: { length: number }): TStringParser => {
 
     const encoded = encoder.encode(value);
 
-    if (encoded.length + 1 >= length) {
+    if (encoded.length + 1 > length) {
       throw Error("string too long to fit in target");
     }
 
