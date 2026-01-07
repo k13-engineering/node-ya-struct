@@ -111,6 +111,14 @@ const layoutStruct = ({
 
           break;
         }
+        case "struct": {
+
+          if (currentOffsetInBits % 64 !== 0) {
+            throw Error("nested struct alignment handling not implemented yet");
+          }
+
+          break;
+        }
         case "string": {
           // no special alignment needed
           break;
