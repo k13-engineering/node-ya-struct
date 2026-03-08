@@ -60,22 +60,17 @@ const createStructParser = ({
   });
 
   const parse: TStructParser["parse"] = ({ data, offsetInBits }) => {
-    if (offsetInBits !== 0) {
-      throw Error("unaligned struct parsing not supported yet");
-    }
-
     // eslint-disable-next-line prefer-const
     let result: Record<string, unknown> = {};
 
     layoutedFields.forEach((field, idx) => {
       const fieldParser = fieldParsers[idx];
 
-      const offsetInBitsInByte = field.definition.offsetInBits % 8;
-      if (offsetInBitsInByte !== 0) {
-        throw Error("not implemented yet: unaligned field parsing");
-      }
+      const absoluteOffsetInBits = offsetInBits + field.definition.offsetInBits;
+      const byteOffset = Math.floor(absoluteOffsetInBits / 8);
+      const offsetInBitsInByte = absoluteOffsetInBits % 8;
 
-      const fieldData = new Uint8Array(data.buffer, data.byteOffset + (field.definition.offsetInBits / 8));
+      const fieldData = new Uint8Array(data.buffer, data.byteOffset + byteOffset, data.length - byteOffset);
       result[field.name] = fieldParser.parse({ data: fieldData, offsetInBits: offsetInBitsInByte });
     });
 
@@ -87,15 +82,14 @@ const createStructParser = ({
       const fieldValue = value[field.name];
       const fieldParser = fieldParsers[idx];
 
-      const offsetInBitsInByte = field.definition.offsetInBits % 8;
-      if (offsetInBitsInByte !== 0) {
-        throw Error("not implemented yet: unaligned field formatting");
-      }
+      const absoluteOffsetInBits = offsetInBits + field.definition.offsetInBits;
+      const byteOffset = Math.floor(absoluteOffsetInBits / 8);
+      const offsetInBitsInByte = absoluteOffsetInBits % 8;
 
-      const fieldTarget = new Uint8Array(target.buffer, target.byteOffset + (field.definition.offsetInBits / 8));
+      const fieldTarget = new Uint8Array(target.buffer, target.byteOffset + byteOffset, target.length - byteOffset);
 
       try {
-        fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits });
+        fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits: offsetInBitsInByte });
       } catch (ex) {
         throw Error(`failed to format field "${field.name}"`, { cause: ex });
       }

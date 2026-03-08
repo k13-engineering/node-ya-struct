@@ -62,7 +62,7 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
     };
 
     const format: P["format"] = ({ value }) => {
-      const data = new Uint8Array(l.sizeInBits / 8);
+      const data = new Uint8Array(Math.ceil(l.sizeInBits / 8));
       valueParser.format({ value, target: data, offsetInBits: 0 });
 
       return data;

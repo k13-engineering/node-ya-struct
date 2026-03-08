@@ -13,14 +13,105 @@ const createIntegerParser = ({
   endianness: TEndianness
 }): TIntegerParser => {
 
+  const readBit = ({ data, bitOffset }: { data: Uint8Array, bitOffset: number }): bigint => {
+    const byteIndex = Math.floor(bitOffset / 8);
+    const bitInByte = bitOffset % 8;
+
+    if (byteIndex >= data.length) {
+      throw Error("BUG: not enough data for integer bit parsing");
+    }
+
+    return BigInt((data[byteIndex] >> bitInByte) & 1);
+  };
+
+  const writeBit = ({ data, bitOffset, bit }: { data: Uint8Array, bitOffset: number, bit: bigint }): void => {
+    const byteIndex = Math.floor(bitOffset / 8);
+    const bitInByte = bitOffset % 8;
+
+    if (byteIndex >= data.length) {
+      throw Error("BUG: not enough data for integer bit formatting");
+    }
+
+    const mask = 1 << bitInByte;
+    if (bit === 1n) {
+      data[byteIndex] |= mask;
+    } else {
+      data[byteIndex] &= (~mask) & 0xFF;
+    }
+  };
+
+  const parseArbitrarySized = ({ data, offsetInBits }: { data: Uint8Array, offsetInBits: number }): bigint => {
+    let result = 0n;
+
+    if (endianness === "little") {
+      for (let i = 0; i < sizeInBits; i += 1) {
+        const bit = readBit({ data, bitOffset: offsetInBits + i });
+        result |= bit << BigInt(i);
+      }
+    } else {
+      for (let i = 0; i < sizeInBits; i += 1) {
+        const bit = readBit({ data, bitOffset: offsetInBits + i });
+        const shift = BigInt(sizeInBits - 1 - i);
+        result |= bit << shift;
+      }
+    }
+
+    if (!signed) {
+      return result;
+    }
+
+    const signBit = 1n << BigInt(sizeInBits - 1);
+    if ((result & signBit) === 0n) {
+      return result;
+    }
+
+    return result - (1n << BigInt(sizeInBits));
+  };
+
+  const formatArbitrarySized = ({
+    value,
+    target,
+    offsetInBits
+  }: {
+    value: bigint,
+    target: Uint8Array,
+    offsetInBits: number
+  }): void => {
+    const bitLength = BigInt(sizeInBits);
+    const modulus = 1n << bitLength;
+
+    let unsignedValue = value;
+    if (signed && value < 0n) {
+      unsignedValue = value + modulus;
+    }
+
+    if (unsignedValue < 0n || unsignedValue >= modulus) {
+      throw Error(`integer value ${value} does not fit in ${sizeInBits} bits`);
+    }
+
+    if (endianness === "little") {
+      for (let i = 0; i < sizeInBits; i += 1) {
+        const bit = (unsignedValue >> BigInt(i)) & 1n;
+        writeBit({ data: target, bitOffset: offsetInBits + i, bit });
+      }
+    } else {
+      for (let i = 0; i < sizeInBits; i += 1) {
+        const shift = BigInt(sizeInBits - 1 - i);
+        const bit = (unsignedValue >> shift) & 1n;
+        writeBit({ data: target, bitOffset: offsetInBits + i, bit });
+      }
+    }
+  };
+
   // eslint-disable-next-line max-statements, complexity
   const parse: TIntegerParser["parse"] = ({ data, offsetInBits }) => {
-    if (data.length < sizeInBits / 8) {
+    const neededBytes = Math.ceil((offsetInBits + sizeInBits) / 8);
+    if (data.length < neededBytes) {
       throw Error("BUG: not enough data for integer parsing");
     }
 
-    if (offsetInBits !== 0) {
-      throw Error("unaligned data in integer parser, not supported yet");
+    if (offsetInBits !== 0 || (sizeInBits !== 8 && sizeInBits !== 16 && sizeInBits !== 32 && sizeInBits !== 64)) {
+      return parseArbitrarySized({ data, offsetInBits });
     }
 
     const view = new DataView(data.buffer, data.byteOffset);
@@ -83,12 +174,18 @@ const createIntegerParser = ({
 
   // eslint-disable-next-line max-statements, complexity
   const format: TIntegerParser["format"] = ({ value, target, offsetInBits }) => {
-    if (offsetInBits !== 0) {
-      throw Error("unaligned data in integer formatter, not supported yet");
-    }
-
     if (typeof value !== "bigint") {
       throw Error("invalid value type for integer formatter");
+    }
+
+    const neededBytes = Math.ceil((offsetInBits + sizeInBits) / 8);
+    if (target.length < neededBytes) {
+      throw Error("not enough space in target for integer formatting");
+    }
+
+    if (offsetInBits !== 0 || (sizeInBits !== 8 && sizeInBits !== 16 && sizeInBits !== 32 && sizeInBits !== 64)) {
+      formatArbitrarySized({ value, target, offsetInBits });
+      return;
     }
 
     const view = new DataView(target.buffer, target.byteOffset);

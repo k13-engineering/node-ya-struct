@@ -86,6 +86,10 @@ const layoutStruct = ({
         case "float": {
           const sizeInBits = normalizedField.sizeInBits;
 
+          if (normalizedField.type === "integer" && sizeInBits % 8 !== 0) {
+            break;
+          }
+
           if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
             // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
             currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
