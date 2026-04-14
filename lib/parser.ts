@@ -51,6 +51,7 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
     if (l.type === "struct") {
       valueParser = createStructParser({
         layoutedFields: l.fields,
+        structOffsetInBits: l.offsetInBits,
         endianness: abi.endianness
       }) as unknown as TValueParser<TParsedValueOfDefinition<T>>;
     } else {

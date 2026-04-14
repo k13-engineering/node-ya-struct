@@ -9,11 +9,20 @@ import type { TFieldType } from "./index.ts";
 
 type TStructParser = TValueParser<Record<string, unknown>>;
 
+const subData = ({ data, offsetInBits, sizeInBits }: { data: Uint8Array, offsetInBits: number, sizeInBits: number }) => {
+  return {
+    data: new Uint8Array(data.buffer, data.byteOffset + Math.floor(offsetInBits / 8), Math.ceil(sizeInBits / 8)),
+    offsetInBits: offsetInBits % 8
+  };
+};
+
 const createStructParser = ({
   layoutedFields,
+  structOffsetInBits,
   endianness
 }: {
   layoutedFields: (TLayoutedField & { type: "struct" })["fields"];
+  structOffsetInBits: number;
   endianness: TEndianness
 }): TStructParser => {
 
@@ -37,6 +46,7 @@ const createStructParser = ({
     if (field.definition.type === "struct") {
       return createStructParser({
         layoutedFields: field.definition.fields,
+        structOffsetInBits: field.definition.offsetInBits,
         endianness
       });
     }
@@ -70,19 +80,35 @@ const createStructParser = ({
     layoutedFields.forEach((field, idx) => {
       const fieldParser = fieldParsers[idx];
 
+      // field definition is absolute, subtracting struct offset gives bit offset inside struct
+      // adding data bit offset gives bit offset inside provided data
+      const offsetToProvidedDataInBits = field.definition.offsetInBits - structOffsetInBits + offsetInBits;
+
       const offsetInBitsInByte = field.definition.offsetInBits % 8;
       if (offsetInBitsInByte !== 0) {
         throw Error("not implemented yet: unaligned field parsing");
       }
 
-      const fieldData = new Uint8Array(data.buffer, data.byteOffset + (field.definition.offsetInBits / 8));
-      result[field.name] = fieldParser.parse({ data: fieldData, offsetInBits: offsetInBitsInByte });
+      const {
+        data: fieldData,
+        offsetInBits: fieldOffsetInBits
+      } = subData({
+        data,
+        offsetInBits: offsetToProvidedDataInBits,
+        sizeInBits: field.definition.sizeInBits
+      });
+
+      result[field.name] = fieldParser.parse({ data: fieldData, offsetInBits: fieldOffsetInBits });
     });
 
     return result;
   };
 
   const format: TStructParser["format"] = ({ value, target, offsetInBits }) => {
+    if (offsetInBits % 8 !== 0) {
+      throw Error("unaligned struct formatting not supported yet");
+    }
+
     layoutedFields.forEach((field, idx) => {
       const fieldValue = value[field.name];
       const fieldParser = fieldParsers[idx];
@@ -92,10 +118,17 @@ const createStructParser = ({
         throw Error("not implemented yet: unaligned field formatting");
       }
 
-      const fieldTarget = new Uint8Array(target.buffer, target.byteOffset + (field.definition.offsetInBits / 8));
+      const {
+        data: fieldTarget,
+        offsetInBits: fieldOffsetInBits
+      } = subData({
+        data: target,
+        offsetInBits: field.definition.offsetInBits - structOffsetInBits + offsetInBits,
+        sizeInBits: field.definition.sizeInBits
+      });
 
       try {
-        fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits });
+        fieldParser.format({ value: fieldValue, target: fieldTarget, offsetInBits: fieldOffsetInBits });
       } catch (ex) {
         throw Error(`failed to format field "${field.name}"`, { cause: ex });
       }
