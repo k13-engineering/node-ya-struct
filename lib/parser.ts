@@ -13,6 +13,8 @@ type FieldValue<T extends TFieldType> =
   ? FieldValue<E & TFieldType>[] :
   T extends { type: "struct"; fields: infer F }
   ? StructValue<F & readonly { name: string; definition: TFieldType }[]> :
+  T extends { type: "c-type"; cType: "float" | "double" | "long double" } ? number :
+  T extends { type: "c-type" } ? bigint :
   never;
 
 type StructValue<
