@@ -21,5 +21,6 @@
   "bugs": {
     "url": "https://github.com/k13-engineering/node-ya-struct/issues"
   },
-  "homepage": "https://github.com/k13-engineering/node-ya-struct#readme"
+  "homepage": "https://github.com/k13-engineering/node-ya-struct#readme",
+  "files": ["dist"]
 }

@@ -43,6 +43,7 @@ const createArrayParser = ({
     for (let i = 0; i < length; i += 1) {
       const fieldData = data.subarray(i * elementSizeInBytes, (i + 1) * elementSizeInBytes);
       const fieldValue = fieldParser.parse({ data: fieldData, offsetInBits: 0 });
+      // eslint-disable-next-line fp/no-mutating-methods -- performance
       result.push(fieldValue);
     }
 

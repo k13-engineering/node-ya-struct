@@ -2,6 +2,7 @@ import { type TCompiler, type TDataModel } from "../lib/common.ts";
 import { define } from "../lib/parser.ts";
 import { type TCFieldType, type TFieldType } from "../lib/types/index.ts";
 import { determineCCompilerStructLayout } from "./compile-util.ts";
+import { describe, it } from "mocha";
 import nodeAssert from "node:assert";
 
 type TStructDefinition = TFieldType & { type: "struct" };
@@ -19,18 +20,18 @@ const simpleStructDefinitionToCCode = ({
   const fieldDefinitions = definition.fields.map((field) => {
 
     switch (field.definition.type) {
-      case "c-type": {
-        return `${field.definition.cType} ${field.name};`;
-      }
-      case "pointer": {
-        return `void* ${field.name};`;
-      }
-      case "string": {
-        return `char ${field.name}[${field.definition.length}];`;
-      }
-      default: {
-        throw Error(`unsupported field type "${field.definition.type}"`);
-      }
+    case "c-type": {
+      return `${field.definition.cType} ${field.name};`;
+    }
+    case "pointer": {
+      return `void* ${field.name};`;
+    }
+    case "string": {
+      return `char ${field.name}[${field.definition.length}];`;
+    }
+    default: {
+      throw Error(`unsupported field type "${field.definition.type}"`);
+    }
     }
   });
 
@@ -73,7 +74,9 @@ const defineStructTestFor = ({
     const cLayout = await determineCCompilerStructLayout({
       definitions: cDefinition,
       structName: cStructName,
-      fieldNames: definition.fields.map((f) => f.name),
+      fieldNames: definition.fields.map((f) => {
+        return f.name;
+      }),
       bits: dataModel === "LP64" ? 64 : 32
     });
 

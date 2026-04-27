@@ -6,6 +6,7 @@ import assert from "node:assert";
 
 const exec = ({ command }: { command: string }) => {
   return new Promise<{ stdout: string }>((resolve, reject) => {
+    // eslint-disable-next-line k13-engineering/prefer-single-object-parameters
     child_process.exec(command, (err, stdout, stderr) => {
       if (err) {
         reject(Error(`run failed: ${stderr}`, { cause: err }));

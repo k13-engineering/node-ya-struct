@@ -42,6 +42,7 @@ const createStringParser = ({ length }: { length: number }): TStringParser => {
     }
 
     target.set(encoded, 0);
+    // eslint-disable-next-line immutable/no-mutation -- performance
     target[encoded.length] = 0;
   };
 

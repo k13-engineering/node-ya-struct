@@ -98,6 +98,7 @@ const createStructParser = ({
         sizeInBits: field.definition.sizeInBits
       });
 
+      // eslint-disable-next-line immutable/no-mutation -- performance
       result[field.name] = fieldParser.parse({ data: fieldData, offsetInBits: fieldOffsetInBits });
     });
 

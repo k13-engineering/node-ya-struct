@@ -42,12 +42,12 @@ type TLayoutedField = {
 
 const pointerSizeInBitsByDataModel = ({ dataModel }: { dataModel: TAbi["dataModel"] }): number => {
   switch (dataModel) {
-    case "LP64":
-      return 64;
-    case "ILP32":
-      return 32;
-    default:
-      throw Error(`unsupported data model "${dataModel}" for pointer size determination`);
+  case "LP64":
+    return 64;
+  case "ILP32":
+    return 32;
+  default:
+    throw Error(`unsupported data model "${dataModel}" for pointer size determination`);
   }
 };
 
@@ -82,53 +82,53 @@ const layoutStruct = ({
 
     if (!definition.packed) {
       switch (normalizedField.type) {
-        case "integer":
-        case "float": {
-          const sizeInBits = normalizedField.sizeInBits;
+      case "integer":
+      case "float": {
+        const sizeInBits = normalizedField.sizeInBits;
 
-          if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
-            // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
-            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
-          } else {
-            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
-          }
-
-          break;
+        if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
+          // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
+          currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
+        } else {
+          currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
         }
-        case "array": {
 
-          // TODO: this is probably not sufficient for all cases
+        break;
+      }
+      case "array": {
 
-          // eslint-disable-next-line no-use-before-define
-          const { sizeInBits } = layout({ definition: normalizedField.elementType, abi, currentOffsetInBits: 0 });
+        // TODO: this is probably not sufficient for all cases
 
-          if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
-            // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
-            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
-          } else {
-            currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
-          }
+        // eslint-disable-next-line no-use-before-define
+        const { sizeInBits } = layout({ definition: normalizedField.elementType, abi, currentOffsetInBits: 0 });
 
-          break;
+        if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
+          // special handling for gcc 64-bit integers on ILP32 data model (alignment to 32 bits)
+          currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: 32 });
+        } else {
+          currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: sizeInBits });
         }
-        case "struct": {
 
-          if (currentOffsetInBits % 64 !== 0) {
-            throw Error("nested struct alignment handling not implemented yet");
-          }
+        break;
+      }
+      case "struct": {
 
-          break;
+        if (currentOffsetInBits % 64 !== 0) {
+          throw Error("nested struct alignment handling not implemented yet");
         }
-        case "string": {
-          // no special alignment needed
-          break;
-        }
-        case "pointer": {
-          currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: pointerSizeInBits });
-          break;
-        }
-        default:
-          throw Error(`unsupported field type for struct layout: ${nodeUtil.inspect(field.definition)}`);
+
+        break;
+      }
+      case "string": {
+        // no special alignment needed
+        break;
+      }
+      case "pointer": {
+        currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: pointerSizeInBits });
+        break;
+      }
+      default:
+        throw Error(`unsupported field type for struct layout: ${nodeUtil.inspect(field.definition)}`);
       }
     }
 
