@@ -88,3 +88,7 @@ const define = <const T extends TFieldType>({ definition }: { definition: T }) =
 export {
   define
 };
+
+export type {
+  TParser,
+};

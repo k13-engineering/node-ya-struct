@@ -1,9 +1,8 @@
-import { type TCompiler, type TDataModel } from "../lib/common.ts";
-import { define } from "../lib/parser.ts";
+import { type TAbi, type TCompiler, type TDataModel } from "../lib/common.ts";
+import { compileAndCompare } from "../lib/tests/compile-and-compare.vibe.ts";
 import { type TCFieldType, type TFieldType } from "../lib/types/index.ts";
-import { determineCCompilerStructLayout } from "./compile-util.ts";
+import { compileAndRun } from "./compile-util.ts";
 import { describe, it } from "mocha";
-import nodeAssert from "node:assert";
 
 type TStructDefinition = TFieldType & { type: "struct" };
 
@@ -65,54 +64,45 @@ const defineStructTestFor = ({
 
     const cStructName = "MyStruct1";
 
-    const cDefinition = simpleStructDefinitionToCCode({
-      definition,
-      structName: cStructName,
-      packed
+    const abi: TAbi = {
+      compiler,
+      dataModel,
+      endianness: "little"
+    };
+
+    const { layoutErrors } = await compileAndCompare({
+      structDefinition: definition,
+      abi,
+      compileAndRun: async ({ sourceCode }) => {
+        const { output } = await compileAndRun({
+          sourceCode,
+          bits: dataModel === "LP64" ? 64 : 32
+        });
+
+        return {
+          output
+        };
+      },
+      cStructName,
+      globalCode: `
+        ${simpleStructDefinitionToCCode({ definition, structName: cStructName, packed })}
+      `
     });
 
-    const cLayout = await determineCCompilerStructLayout({
-      definitions: cDefinition,
-      structName: cStructName,
-      fieldNames: definition.fields.map((f) => {
-        return f.name;
-      }),
-      bits: dataModel === "LP64" ? 64 : 32
-    });
-
-    const def = define({
-      definition
-    });
-
-    const parser = def.parser({
-      abi: {
-        compiler,
-        dataModel,
-        endianness: "little"
+    layoutErrors.forEach((layoutError) => {
+      switch (layoutError.type) {
+      case "size-mismatch": {
+        throw Error(`size mismatch for field "${layoutError.fieldPath}": expected ${layoutError.expectedSizeInBits} bits, actual ${layoutError.actualSizeInBits} bits`);
+      }
+      case "offset-mismatch": {
+        throw Error(`offset mismatch for field "${layoutError.fieldPath}": expected ${layoutError.expectedOffsetInBits} bits, actual ${layoutError.actualOffsetInBits} bits`);
+      }
+      default: {
+        // @ts-expect-error exhaustiveness check
+        throw Error(`unexpected layout error type "${layoutError.type}"`);
+      }
       }
     });
-
-    nodeAssert.strictEqual(parser.layout.type, "struct");
-
-    let ourLayout = {};
-
-    parser.layout.fields.forEach((fieldLayout) => {
-      const correspondinCLayout = cLayout[fieldLayout.name];
-      nodeAssert.ok(correspondinCLayout !== undefined);
-
-      nodeAssert.ok(fieldLayout.definition.offsetInBits % 8 === 0);
-      nodeAssert.ok(fieldLayout.definition.sizeInBits % 8 === 0);
-
-      ourLayout = {
-        ...ourLayout,
-        [fieldLayout.name]: {
-          offset: fieldLayout.definition.offsetInBits / 8,
-          length: fieldLayout.definition.sizeInBits / 8
-        }
-      };
-    });
-
-    nodeAssert.deepStrictEqual(ourLayout, cLayout);
   });
 };
 

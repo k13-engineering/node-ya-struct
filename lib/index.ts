@@ -1,5 +1,6 @@
 import { define } from "./parser.ts";
 import { types } from "./types/index.ts";
+import { compileAndCompare } from "./tests/compile-and-compare.vibe.ts";
 
 import type {
   TAbi,
@@ -10,7 +11,8 @@ import type {
 
 export {
   define,
-  types
+  types,
+  compileAndCompare
 };
 
 export type {
