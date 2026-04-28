@@ -1,12 +1,24 @@
 import { type TAbi, type TCompiler, type TDataModel } from "../lib/common.ts";
 import { compileAndCompare } from "../lib/tests/compile-and-compare.vibe.ts";
-import { type TCFieldType, type TFieldType } from "../lib/types/index.ts";
+import { types, type TCFieldType, type TFieldType } from "../lib/types/index.ts";
 import { compileAndRun } from "./compile-util.ts";
 import { describe, it } from "mocha";
 
 type TStructDefinition = TFieldType & { type: "struct" };
 
 let nestedStructCounter = 0;
+let padCounter = 0;
+
+// eslint-disable-next-line complexity
+const integerSizeToCType = ({ sizeInBits, signed }: { sizeInBits: number, signed: boolean }): string => {
+  switch (sizeInBits) {
+  case 8: return signed ? "char" : "unsigned char";
+  case 16: return signed ? "short" : "unsigned short";
+  case 32: return signed ? "int" : "unsigned int";
+  case 64: return signed ? "long long" : "unsigned long long";
+  default: throw Error(`unsupported integer size ${sizeInBits}`);
+  }
+};
 
 const structDefinitionToCCode = ({
   definition,
@@ -20,26 +32,34 @@ const structDefinitionToCCode = ({
 
   let preamble = "";
 
+  // eslint-disable-next-line complexity
   const fieldDefinitions = definition.fields.map((field) => {
+    padCounter += 1;
+    const fieldName = field.name ?? `_pad_${padCounter}`;
 
     switch (field.definition.type) {
     case "c-type": {
-      return `${field.definition.cType} ${field.name};`;
+      return `${field.definition.cType} ${fieldName};`;
+    }
+    case "integer": {
+      const cType = integerSizeToCType({ sizeInBits: field.definition.sizeInBits, signed: field.definition.signed });
+      return `${cType} ${fieldName};`;
     }
     case "pointer": {
-      return `void* ${field.name};`;
+      return `void* ${fieldName};`;
     }
     case "string": {
-      return `char ${field.name}[${field.definition.length}];`;
+      return `char ${fieldName}[${field.definition.length}];`;
     }
     case "struct": {
-      const innerStructName = `${structName}_nested_${nestedStructCounter++}`;
-      preamble += structDefinitionToCCode({
+      nestedStructCounter += 1;
+      const innerStructName = `${structName}_nested_${nestedStructCounter}`;
+      preamble += `${structDefinitionToCCode({
         definition: field.definition,
         structName: innerStructName,
         packed: field.definition.packed
-      }) + "\n";
-      return `struct ${innerStructName} ${field.name};`;
+      })}\n`;
+      return `struct ${innerStructName} ${fieldName};`;
     }
     default: {
       throw Error(`unsupported field type "${field.definition.type}"`);
@@ -105,10 +125,16 @@ const defineStructTestFor = ({
     layoutErrors.forEach((layoutError) => {
       switch (layoutError.type) {
       case "size-mismatch": {
-        throw Error(`size mismatch for field "${layoutError.fieldPath}": expected ${layoutError.expectedSizeInBits} bits, actual ${layoutError.actualSizeInBits} bits`);
+        const msg = `size mismatch for field "${layoutError.fieldPath}":`
+          + ` expected ${layoutError.expectedSizeInBits} bits,`
+          + ` actual ${layoutError.actualSizeInBits} bits`;
+        throw Error(msg);
       }
       case "offset-mismatch": {
-        throw Error(`offset mismatch for field "${layoutError.fieldPath}": expected ${layoutError.expectedOffsetInBits} bits, actual ${layoutError.actualOffsetInBits} bits`);
+        const msg = `offset mismatch for field "${layoutError.fieldPath}":`
+          + ` expected ${layoutError.expectedOffsetInBits} bits,`
+          + ` actual ${layoutError.actualOffsetInBits} bits`;
+        throw Error(msg);
       }
       default: {
         // @ts-expect-error exhaustiveness check
@@ -479,6 +505,149 @@ describe("c-structs", () => {
           }
         },
         cField({ name: "a", cType: "int" }),
+      ]
+    },
+
+    {
+      structName: "nested #6",
+      fields: [
+        {
+          name: "preamble",
+          definition: types.UInt32
+        },
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: false,
+            fixedAbi: {},
+            fields: [
+              {
+                name: "x",
+                definition: types.UInt32
+              },
+              {
+                name: "y",
+                definition: types.UInt32
+              }
+            ]
+          }
+        },
+        {
+          name: "postamble",
+          definition: types.UInt32
+        }
+      ]
+    },
+
+    {
+      structName: "nested #7",
+      fields: [
+        {
+          name: "type",
+          definition: types.UInt32,
+        },
+        {
+          name: "fmt",
+          definition: {
+            type: "struct",
+            fields: [
+              {
+                name: "pix",
+                definition: {
+                  type: "struct",
+                  fields: [
+                    { name: "width", definition: types.UInt32 },
+                    { name: "height", definition: types.UInt32 },
+                    { name: "pixelformat", definition: types.UInt32 },
+                    { name: "field", definition: types.UInt32 },
+                    { name: "bytesperline", definition: types.UInt32 },
+                    { name: "sizeimage", definition: types.UInt32 },
+                    { name: "colorspace", definition: types.UInt32 },
+                    { name: "priv", definition: types.UInt32 },
+                    { name: "flags", definition: types.UInt32 },
+                    { name: "ycbcr_enc", definition: types.UInt32 },
+                    { name: "quantization", definition: types.UInt32 },
+                    { name: "xfer_func", definition: types.UInt32 },
+                  ],
+                  fixedAbi: {},
+                  packed: false,
+                }
+              },
+            ],
+            fixedAbi: {},
+            packed: false
+          }
+        },
+      ]
+    },
+
+    {
+      structName: "pad #1 (char + unnamed pad int + int)",
+      fields: [
+        cField({ name: "a", cType: "char" }),
+        {
+          pad: true,
+          name: undefined,
+          definition: {
+            type: "c-type",
+            cType: "int",
+            fixedAbi: {}
+          }
+        },
+        cField({ name: "b", cType: "int" }),
+      ]
+    },
+
+    {
+      structName: "pad #2 (char + named pad int + long long)",
+      fields: [
+        cField({ name: "a", cType: "char" }),
+        {
+          pad: true,
+          name: "reserved",
+          definition: {
+            type: "c-type",
+            cType: "int",
+            fixedAbi: {}
+          }
+        },
+        cField({ name: "b", cType: "long long" }),
+      ]
+    },
+
+    {
+      structName: "pad #3 (int + unnamed pad char + int)",
+      fields: [
+        cField({ name: "a", cType: "int" }),
+        {
+          pad: true,
+          name: undefined,
+          definition: {
+            type: "integer",
+            sizeInBits: 8,
+            signed: false,
+            fixedAbi: {}
+          }
+        },
+        cField({ name: "b", cType: "int" }),
+      ]
+    },
+
+    {
+      structName: "pad #4 (short + unnamed pad short + long long)",
+      fields: [
+        cField({ name: "a", cType: "short" }),
+        {
+          pad: true,
+          name: undefined,
+          definition: {
+            type: "c-type",
+            cType: "short",
+            fixedAbi: {}
+          }
+        },
+        cField({ name: "b", cType: "long long" }),
       ]
     },
   ];

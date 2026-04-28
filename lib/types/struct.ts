@@ -78,6 +78,10 @@ const createStructParser = ({
     let result: Record<string, unknown> = {};
 
     layoutedFields.forEach((field, idx) => {
+      if (field.pad) {
+        return;
+      }
+
       const fieldParser = fieldParsers[idx];
 
       // field definition is absolute, subtracting struct offset gives bit offset inside struct
@@ -99,7 +103,7 @@ const createStructParser = ({
       });
 
       // eslint-disable-next-line immutable/no-mutation -- performance
-      result[field.name] = fieldParser.parse({ data: fieldData, offsetInBits: fieldOffsetInBits });
+      result[field.name!] = fieldParser.parse({ data: fieldData, offsetInBits: fieldOffsetInBits });
     });
 
     return result;
@@ -111,7 +115,11 @@ const createStructParser = ({
     }
 
     layoutedFields.forEach((field, idx) => {
-      const fieldValue = value[field.name];
+      if (field.pad) {
+        return;
+      }
+
+      const fieldValue = value[field.name!];
       const fieldParser = fieldParsers[idx];
 
       const offsetInBitsInByte = field.definition.offsetInBits % 8;

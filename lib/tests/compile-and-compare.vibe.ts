@@ -37,9 +37,13 @@ const flattenLayout = ({
   parentPath: string;
 }): TFlatField[] => {
   return fields.flatMap((field) => {
+    if (field.pad) {
+      return [];
+    }
+
     const fieldPath = parentPath
       ? `${parentPath}.${field.name}`
-      : field.name;
+      : field.name!;
 
     const isStruct = field.definition.type === "struct";
 

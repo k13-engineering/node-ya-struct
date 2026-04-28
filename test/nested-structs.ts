@@ -121,10 +121,14 @@ describe("nested-structs", () => {
     nodeAssert.strictEqual(encoded.length, 16);
 
     const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
-    nodeAssert.strictEqual(view.getUint8(0), 0x11);     // x at byte 0
-    nodeAssert.strictEqual(view.getUint32(4, true), 0x22); // inner.a at byte 4
-    nodeAssert.strictEqual(view.getUint8(8), 0x33);      // inner.b at byte 8
-    nodeAssert.strictEqual(view.getUint8(12), 0x44);     // y at byte 12
+    // x at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // inner.a at byte 4
+    nodeAssert.strictEqual(view.getUint32(4, true), 0x22);
+    // inner.b at byte 8
+    nodeAssert.strictEqual(view.getUint8(8), 0x33);
+    // y at byte 12
+    nodeAssert.strictEqual(view.getUint8(12), 0x44);
 
     const parsed = parser.parse({ data: encoded });
     nodeAssert.deepStrictEqual(parsed, {
@@ -176,9 +180,12 @@ describe("nested-structs", () => {
     nodeAssert.strictEqual(encoded.length, 6);
 
     const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
-    nodeAssert.strictEqual(view.getUint8(0), 0x11);       // x at byte 0
-    nodeAssert.strictEqual(view.getUint16(2, true), 0xAA); // inner.a at byte 2
-    nodeAssert.strictEqual(view.getUint16(4, true), 0xBB); // inner.b at byte 4
+    // x at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // inner.a at byte 2
+    nodeAssert.strictEqual(view.getUint16(2, true), 0xAA);
+    // inner.b at byte 4
+    nodeAssert.strictEqual(view.getUint16(4, true), 0xBB);
   });
 
   it("should handle packed nested struct inside non-packed struct", () => {
@@ -223,9 +230,12 @@ describe("nested-structs", () => {
     nodeAssert.strictEqual(encoded.length, 6);
 
     const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
-    nodeAssert.strictEqual(view.getUint8(0), 0x11);      // x at byte 0
-    nodeAssert.strictEqual(view.getUint32(1, true), 0x22); // inner.a at byte 1 (packed, no alignment)
-    nodeAssert.strictEqual(view.getUint8(5), 0x33);       // inner.b at byte 5
+    // x at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // inner.a at byte 1 (packed, no alignment)
+    nodeAssert.strictEqual(view.getUint32(1, true), 0x22);
+    // inner.b at byte 5
+    nodeAssert.strictEqual(view.getUint8(5), 0x33);
   });
 
   it("should handle nested struct end padding", () => {
@@ -271,14 +281,141 @@ describe("nested-structs", () => {
     nodeAssert.strictEqual(encoded.length, 12);
 
     const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
-    nodeAssert.strictEqual(view.getUint32(0, true), 0xAA); // inner.a at byte 0
-    nodeAssert.strictEqual(view.getUint8(4), 0xBB);        // inner.b at byte 4
-    nodeAssert.strictEqual(view.getUint32(8, true), 0xCC); // y at byte 8 (after inner's end padding)
+    // inner.a at byte 0
+    nodeAssert.strictEqual(view.getUint32(0, true), 0xAA);
+    // inner.b at byte 4
+    nodeAssert.strictEqual(view.getUint8(4), 0xBB);
+    // y at byte 8 (after inner's end padding)
+    nodeAssert.strictEqual(view.getUint32(8, true), 0xCC);
 
     const parsed = parser.parse({ data: encoded });
     nodeAssert.deepStrictEqual(parsed, {
       inner: { a: 0xAAn, b: 0xBBn },
       y: 0xCCn,
+    });
+  });
+
+  it("should skip unnamed padding fields in parse/format", () => {
+    const UInt8 = { type: "integer", sizeInBits: 8, signed: false, fixedAbi: {} } as const;
+
+    const def = {
+      type: "struct",
+      packed: false,
+      fixedAbi: {},
+      fields: [
+        { name: "a", definition: UInt8 },
+        { pad: true, name: undefined, definition: types.UInt32 },
+        { name: "b", definition: types.UInt32 },
+      ],
+    } as const;
+
+    const parser = define({ definition: def }).parser({ abi });
+
+    // a at byte 0 (8 bits), pad at byte 4 (32 bits, aligned), b at byte 8 (32 bits)
+    nodeAssert.strictEqual(parser.size, 12);
+
+    const encoded = parser.format({
+      value: {
+        a: 0x11n,
+        b: 0x22n,
+      },
+    });
+
+    nodeAssert.strictEqual(encoded.length, 12);
+
+    const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
+    // a at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // b at byte 8
+    nodeAssert.strictEqual(view.getUint32(8, true), 0x22);
+
+    const parsed = parser.parse({ data: encoded });
+    nodeAssert.deepStrictEqual(parsed, {
+      a: 0x11n,
+      b: 0x22n,
+    });
+  });
+
+  it("should skip named padding fields in parse/format", () => {
+    const UInt8 = { type: "integer", sizeInBits: 8, signed: false, fixedAbi: {} } as const;
+
+    const def = {
+      type: "struct",
+      packed: false,
+      fixedAbi: {},
+      fields: [
+        { name: "a", definition: UInt8 },
+        { pad: true, name: "reserved", definition: types.UInt32 },
+        { name: "b", definition: types.UInt32 },
+      ],
+    } as const;
+
+    const parser = define({ definition: def }).parser({ abi });
+
+    nodeAssert.strictEqual(parser.size, 12);
+
+    const encoded = parser.format({
+      value: {
+        a: 0x11n,
+        b: 0x22n,
+      },
+    });
+
+    nodeAssert.strictEqual(encoded.length, 12);
+
+    const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
+    // a at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // reserved at byte 4 (zeroed, not formatted)
+    nodeAssert.strictEqual(view.getUint32(4, true), 0x00);
+    // b at byte 8
+    nodeAssert.strictEqual(view.getUint32(8, true), 0x22);
+
+    const parsed = parser.parse({ data: encoded });
+    nodeAssert.deepStrictEqual(parsed, {
+      a: 0x11n,
+      b: 0x22n,
+    });
+  });
+
+  it("should handle unnamed padding in packed struct", () => {
+    const UInt8 = { type: "integer", sizeInBits: 8, signed: false, fixedAbi: {} } as const;
+
+    const def = {
+      type: "struct",
+      packed: true,
+      fixedAbi: {},
+      fields: [
+        { name: "a", definition: UInt8 },
+        { pad: true, name: undefined, definition: UInt8 },
+        { name: "b", definition: types.UInt32 },
+      ],
+    } as const;
+
+    const parser = define({ definition: def }).parser({ abi });
+
+    // packed: a at byte 0, pad at byte 1, b at byte 2
+    nodeAssert.strictEqual(parser.size, 6);
+
+    const encoded = parser.format({
+      value: {
+        a: 0x11n,
+        b: 0x22n,
+      },
+    });
+
+    nodeAssert.strictEqual(encoded.length, 6);
+
+    const view = new DataView(encoded.buffer, encoded.byteOffset, encoded.byteLength);
+    // a at byte 0
+    nodeAssert.strictEqual(view.getUint8(0), 0x11);
+    // b at byte 2
+    nodeAssert.strictEqual(view.getUint32(2, true), 0x22);
+
+    const parsed = parser.parse({ data: encoded });
+    nodeAssert.deepStrictEqual(parsed, {
+      a: 0x11n,
+      b: 0x22n,
     });
   });
 });

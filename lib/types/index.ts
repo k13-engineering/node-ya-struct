@@ -26,7 +26,15 @@ type TFieldType = {
   readonly length: number;
 } | {
   readonly type: "struct";
-  readonly fields: readonly { readonly name: string; readonly definition: TFieldType }[];
+  readonly fields: readonly ({
+    readonly pad?: false | undefined;
+    readonly name: string;
+    readonly definition: TFieldType
+  } | {
+    readonly pad: true;
+    readonly name: string | undefined;
+    readonly definition: TFieldType;
+  })[];
   readonly packed: boolean;
   readonly fixedAbi: Partial<TAbi>;
 } | {

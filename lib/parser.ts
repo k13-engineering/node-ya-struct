@@ -12,15 +12,34 @@ type FieldValue<T extends TFieldType> =
   T extends { type: "array"; elementType: infer E; length: number }
   ? FieldValue<E & TFieldType>[] :
   T extends { type: "struct"; fields: infer F }
-  ? StructValue<F & readonly { name: string; definition: TFieldType }[]> :
-  T extends { type: "c-type"; cType: "float" | "double" | "long double" } ? number :
+  ? StructValue<
+    F & readonly (
+      | { pad?: false | undefined; name: string; definition: TFieldType }
+      | { pad: true; name: string | undefined; definition: TFieldType }
+    )[]
+  > :
+  T extends {
+    type: "c-type";
+    cType: "float" | "double" | "long double";
+  } ? number :
   T extends { type: "c-type" } ? bigint :
   never;
 
+type NonPadFields<
+  F extends readonly (
+    | { pad?: false | undefined; name: string; definition: TFieldType }
+    | { pad: true; name: string | undefined; definition: TFieldType }
+  )[]
+> =
+  Extract<F[number], { pad?: false | undefined; name: string }>;
+
 type StructValue<
-  F extends readonly { name: string; definition: TFieldType }[]
+  F extends readonly (
+    | { pad?: false | undefined; name: string; definition: TFieldType }
+    | { pad: true; name: string | undefined; definition: TFieldType }
+  )[]
 > = {
-    [K in F[number]as K["name"]]: FieldValue<K["definition"]>;
+    [K in NonPadFields<F> as K["name"]]: FieldValue<K["definition"]>;
   };
 
 type Simplify<T> = {

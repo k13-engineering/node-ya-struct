@@ -29,7 +29,15 @@ type TLayoutedField = {
   readonly type: "struct";
   readonly offsetInBits: number;
   readonly sizeInBits: number;
-  readonly fields: readonly { readonly name: string; readonly definition: TLayoutedField }[];
+  readonly fields: readonly ({
+    readonly pad?: false;
+    readonly name: string;
+    readonly definition: TLayoutedField;
+  } | {
+    readonly pad: true;
+    readonly name: string | undefined;
+    readonly definition: TLayoutedField;
+  })[];
   readonly packed: boolean;
   readonly fixedAbi: Partial<TAbi>;
 } | {
@@ -51,6 +59,7 @@ const pointerSizeInBitsByDataModel = ({ dataModel }: { dataModel: TAbi["dataMode
   }
 };
 
+// eslint-disable-next-line max-statements, complexity
 const alignmentOfField = ({ definition, abi }: { definition: TFieldType, abi: TAbi }): number => {
   if (definition.type === "c-type") {
     const cTypeNormalizer = createCTypeNormalizer({ abi });
@@ -81,7 +90,9 @@ const alignmentOfField = ({ definition, abi }: { definition: TFieldType, abi: TA
     if (definition.fields.length === 0) {
       return 8;
     }
-    return Math.max(...definition.fields.map(f => alignmentOfField({ definition: f.definition, abi })));
+    return Math.max(...definition.fields.map((f) => {
+      return alignmentOfField({ definition: f.definition, abi });
+    }));
   }
 
   if (definition.type === "string") {
@@ -92,7 +103,7 @@ const alignmentOfField = ({ definition, abi }: { definition: TFieldType, abi: TA
 };
 
 // eslint-disable-next-line complexity
-const translateLayoutOffset = (field: TLayoutedField, offset: number): TLayoutedField => {
+const translateLayoutOffset = ({ field, offset }: { field: TLayoutedField; offset: number }): TLayoutedField => {
   if (offset === 0) {
     return field;
   }
@@ -112,11 +123,16 @@ const translateLayoutOffset = (field: TLayoutedField, offset: number): TLayouted
     return {
       ...field,
       offsetInBits: field.offsetInBits + offset,
-      fields: field.fields.map(f => ({
-        name: f.name,
-        definition: translateLayoutOffset(f.definition, offset)
-      }))
+      fields: field.fields.map((f) => {
+        const translated = translateLayoutOffset({ field: f.definition, offset });
+        if (f.pad) {
+          return { pad: true as const, name: f.name, definition: translated };
+        }
+        return { name: f.name, definition: translated };
+      })
     };
+  default:
+    throw Error(`unsupported field type for layout offset translation`);
   }
 };
 
@@ -203,10 +219,9 @@ const layoutStruct = ({
 
     layoutedFields = [
       ...layoutedFields,
-      {
-        name: field.name,
-        definition: fieldLayout
-      }
+      field.pad
+        ? { pad: true as const, name: field.name, definition: fieldLayout }
+        : { name: field.name, definition: fieldLayout }
     ];
 
     currentOffsetInBits = align({ offset: fieldLayout.offsetInBits + fieldLayout.sizeInBits, alignment: fieldAlignmentInBits });
@@ -219,10 +234,13 @@ const layoutStruct = ({
   const sizeInBits = currentOffsetInBits;
 
   // Translate all field offsets to the actual placement position
-  const translatedFields = layoutedFields.map(f => ({
-    name: f.name,
-    definition: translateLayoutOffset(f.definition, initialOffsetInBits)
-  }));
+  const translatedFields = layoutedFields.map((f) => {
+    const translated = translateLayoutOffset({ field: f.definition, offset: initialOffsetInBits });
+    if (f.pad) {
+      return { pad: true as const, name: f.name, definition: translated };
+    }
+    return { name: f.name, definition: translated };
+  });
 
   return {
     type: "struct",
