@@ -6,7 +6,9 @@ import { describe, it } from "mocha";
 
 type TStructDefinition = TFieldType & { type: "struct" };
 
-const simpleStructDefinitionToCCode = ({
+let nestedStructCounter = 0;
+
+const structDefinitionToCCode = ({
   definition,
   structName,
   packed
@@ -14,7 +16,9 @@ const simpleStructDefinitionToCCode = ({
   definition: TStructDefinition,
   structName: string,
   packed: boolean
-}) => {
+}): string => {
+
+  let preamble = "";
 
   const fieldDefinitions = definition.fields.map((field) => {
 
@@ -28,13 +32,22 @@ const simpleStructDefinitionToCCode = ({
     case "string": {
       return `char ${field.name}[${field.definition.length}];`;
     }
+    case "struct": {
+      const innerStructName = `${structName}_nested_${nestedStructCounter++}`;
+      preamble += structDefinitionToCCode({
+        definition: field.definition,
+        structName: innerStructName,
+        packed: field.definition.packed
+      }) + "\n";
+      return `struct ${innerStructName} ${field.name};`;
+    }
     default: {
       throw Error(`unsupported field type "${field.definition.type}"`);
     }
     }
   });
 
-  return `
+  return `${preamble}
       struct ${structName} {
         ${fieldDefinitions.join("\n")}
       } ${packed ? "__attribute__((__packed__))" : ""};
@@ -85,7 +98,7 @@ const defineStructTestFor = ({
       },
       cStructName,
       globalCode: `
-        ${simpleStructDefinitionToCCode({ definition, structName: cStructName, packed })}
+        ${structDefinitionToCCode({ definition, structName: cStructName, packed })}
       `
     });
 
@@ -368,7 +381,106 @@ describe("c-structs", () => {
           }
         },
       ]
-    }
+    },
+
+    {
+      structName: "nested #1 (char + inner{int,char})",
+      fields: [
+        cField({ name: "a", cType: "char" }),
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: false,
+            fixedAbi: {},
+            fields: [
+              cField({ name: "x", cType: "int" }),
+              cField({ name: "y", cType: "char" }),
+            ]
+          }
+        },
+        cField({ name: "b", cType: "char" }),
+      ]
+    },
+
+    {
+      structName: "nested #2 (char + inner{short,short})",
+      fields: [
+        cField({ name: "a", cType: "char" }),
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: false,
+            fixedAbi: {},
+            fields: [
+              cField({ name: "x", cType: "short" }),
+              cField({ name: "y", cType: "short" }),
+            ]
+          }
+        },
+      ]
+    },
+
+    {
+      structName: "nested #3 (int + inner{long long,char} + char)",
+      fields: [
+        cField({ name: "a", cType: "int" }),
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: false,
+            fixedAbi: {},
+            fields: [
+              cField({ name: "x", cType: "long long" }),
+              cField({ name: "y", cType: "char" }),
+            ]
+          }
+        },
+        cField({ name: "b", cType: "char" }),
+      ]
+    },
+
+    {
+      structName: "nested #4 (char + packed inner{int,char})",
+      fields: [
+        cField({ name: "a", cType: "char" }),
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: true,
+            fixedAbi: {},
+            fields: [
+              cField({ name: "x", cType: "int" }),
+              cField({ name: "y", cType: "char" }),
+            ]
+          }
+        },
+        cField({ name: "b", cType: "char" }),
+      ]
+    },
+
+    {
+      structName: "nested #5 (inner{char,char,char} + int)",
+      fields: [
+        {
+          name: "inner",
+          definition: {
+            type: "struct",
+            packed: false,
+            fixedAbi: {},
+            fields: [
+              cField({ name: "x", cType: "char" }),
+              cField({ name: "y", cType: "char" }),
+              cField({ name: "z", cType: "char" }),
+            ]
+          }
+        },
+        cField({ name: "a", cType: "int" }),
+      ]
+    },
   ];
 
   fieldsDefinitions.forEach(({ fields, structName }) => {

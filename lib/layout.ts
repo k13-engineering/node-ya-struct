@@ -51,6 +51,75 @@ const pointerSizeInBitsByDataModel = ({ dataModel }: { dataModel: TAbi["dataMode
   }
 };
 
+const alignmentOfField = ({ definition, abi }: { definition: TFieldType, abi: TAbi }): number => {
+  if (definition.type === "c-type") {
+    const cTypeNormalizer = createCTypeNormalizer({ abi });
+    const normalizedField = cTypeNormalizer.normalize({ cField: definition });
+    return alignmentOfField({ definition: normalizedField, abi });
+  }
+
+  if (definition.type === "integer" || definition.type === "float") {
+    const sizeInBits = definition.sizeInBits;
+    if (abi.compiler === "gcc" && abi.dataModel === "ILP32" && sizeInBits === 64) {
+      return 32;
+    }
+    return sizeInBits;
+  }
+
+  if (definition.type === "pointer") {
+    return pointerSizeInBitsByDataModel({ dataModel: abi.dataModel });
+  }
+
+  if (definition.type === "array") {
+    return alignmentOfField({ definition: definition.elementType, abi });
+  }
+
+  if (definition.type === "struct") {
+    if (definition.packed) {
+      return 8;
+    }
+    if (definition.fields.length === 0) {
+      return 8;
+    }
+    return Math.max(...definition.fields.map(f => alignmentOfField({ definition: f.definition, abi })));
+  }
+
+  if (definition.type === "string") {
+    return definition.charSizeInBits;
+  }
+
+  throw Error(`unsupported field type for alignment calculation`);
+};
+
+// eslint-disable-next-line complexity
+const translateLayoutOffset = (field: TLayoutedField, offset: number): TLayoutedField => {
+  if (offset === 0) {
+    return field;
+  }
+
+  switch (field.type) {
+  case "integer":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "float":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "pointer":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "string":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "array":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "struct":
+    return {
+      ...field,
+      offsetInBits: field.offsetInBits + offset,
+      fields: field.fields.map(f => ({
+        name: f.name,
+        definition: translateLayoutOffset(f.definition, offset)
+      }))
+    };
+  }
+};
+
 const layoutStruct = ({
   definition,
   abi,
@@ -61,13 +130,13 @@ const layoutStruct = ({
   currentOffsetInBits: number
 }): TLayoutedField => {
 
-  // TODO: implement alignment handling
-  const structAlignmentInBits = 64;
-  // const fieldAlignmentInBits = 64;
+  const structAlignmentInBits = definition.packed ? 8 : alignmentOfField({ definition, abi });
   const fieldAlignmentInBits = 1;
   const pointerSizeInBits = pointerSizeInBitsByDataModel({ dataModel: abi.dataModel });
 
-  let currentOffsetInBits = align({ offset: initialOffsetInBits, alignment: structAlignmentInBits });
+  // Compute internal layout from offset 0 to ensure correct internal alignment
+  // independent of the struct's placement position
+  let currentOffsetInBits = 0;
   let layoutedFields: (TLayoutedField & { type: "struct" })["fields"] = [];
 
   // eslint-disable-next-line max-statements,complexity
@@ -112,11 +181,8 @@ const layoutStruct = ({
         break;
       }
       case "struct": {
-
-        if (currentOffsetInBits % 64 !== 0) {
-          throw Error("nested struct alignment handling not implemented yet");
-        }
-
+        const nestedAlignment = alignmentOfField({ definition: normalizedField, abi });
+        currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: nestedAlignment });
         break;
       }
       case "string": {
@@ -146,11 +212,23 @@ const layoutStruct = ({
     currentOffsetInBits = align({ offset: fieldLayout.offsetInBits + fieldLayout.sizeInBits, alignment: fieldAlignmentInBits });
   });
 
+  if (!definition.packed) {
+    currentOffsetInBits = align({ offset: currentOffsetInBits, alignment: structAlignmentInBits });
+  }
+
+  const sizeInBits = currentOffsetInBits;
+
+  // Translate all field offsets to the actual placement position
+  const translatedFields = layoutedFields.map(f => ({
+    name: f.name,
+    definition: translateLayoutOffset(f.definition, initialOffsetInBits)
+  }));
+
   return {
     type: "struct",
     offsetInBits: initialOffsetInBits,
-    sizeInBits: currentOffsetInBits - initialOffsetInBits,
-    fields: layoutedFields,
+    sizeInBits,
+    fields: translatedFields,
     packed: definition.packed,
     fixedAbi: definition.fixedAbi
   };
