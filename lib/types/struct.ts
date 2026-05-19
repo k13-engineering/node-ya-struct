@@ -4,6 +4,7 @@ import { createIntegerParser } from "./integer.ts";
 import { createPointerParser } from "./pointer.ts";
 import { createStringParser } from "./string.ts";
 import { createArrayParser } from "./array.ts";
+import { createBlobParser } from "./blob.ts";
 import type { TValueParser } from "./value.ts";
 
 type TStructParser = TValueParser<Record<string, unknown>>;
@@ -54,6 +55,12 @@ const createFieldParser = ({ definition, endianness }: { definition: TLayoutedFi
       fieldParser: elementParser as TValueParser<unknown>,
       elementSizeInBytes,
       length: definition.length
+    });
+  }
+
+  if (definition.type === "blob") {
+    return createBlobParser({
+      sizeInBytes: definition.sizeInBits / 8
     });
   }
 

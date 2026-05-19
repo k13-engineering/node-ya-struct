@@ -9,6 +9,7 @@ type FieldValue<T extends TFieldType> =
   T extends { type: "float" } ? number :
   T extends { type: "pointer" } ? bigint :
   T extends { type: "string" } ? string :
+  T extends { type: "blob" } ? Uint8Array :
   T extends { type: "array"; elementType: infer E; length: number }
   ? FieldValue<E & TFieldType>[] :
   T extends { type: "struct"; fields: infer F }

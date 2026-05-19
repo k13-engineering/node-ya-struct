@@ -46,6 +46,10 @@ type TLayoutedField = {
   readonly length: number;
   readonly offsetInBits: number;
   readonly sizeInBits: number;
+} | {
+  readonly type: "blob";
+  readonly offsetInBits: number;
+  readonly sizeInBits: number;
 };
 
 const pointerSizeInBitsByDataModel = ({ dataModel }: { dataModel: TAbi["dataModel"] }): number => {
@@ -99,6 +103,10 @@ const alignmentOfField = ({ definition, abi }: { definition: TFieldType, abi: TA
     return definition.charSizeInBits;
   }
 
+  if (definition.type === "blob") {
+    return 8;
+  }
+
   throw Error(`unsupported field type for alignment calculation`);
 };
 
@@ -116,6 +124,8 @@ const translateLayoutOffset = ({ field, offset }: { field: TLayoutedField; offse
   case "pointer":
     return { ...field, offsetInBits: field.offsetInBits + offset };
   case "string":
+    return { ...field, offsetInBits: field.offsetInBits + offset };
+  case "blob":
     return { ...field, offsetInBits: field.offsetInBits + offset };
   case "array":
     return { ...field, offsetInBits: field.offsetInBits + offset };
@@ -203,6 +213,10 @@ const layoutStruct = ({
       }
       case "string": {
         // no special alignment needed
+        break;
+      }
+      case "blob": {
+        // no special alignment needed (byte-aligned)
         break;
       }
       case "pointer": {
@@ -361,6 +375,14 @@ const layout = ({
 
   if (definition.type === "array") {
     return layoutArray({ definition, abi, currentOffsetInBits });
+  }
+
+  if (definition.type === "blob") {
+    return {
+      type: "blob",
+      offsetInBits: currentOffsetInBits,
+      sizeInBits: definition.sizeInBytes * 8
+    };
   }
 
   if (definition.type === "c-type") {

@@ -25,6 +25,9 @@ type TFieldType = {
   readonly elementType: TFieldType;
   readonly length: number;
 } | {
+  readonly type: "blob";
+  readonly sizeInBytes: number;
+} | {
   readonly type: "struct";
   readonly fields: readonly ({
     readonly pad?: false | undefined;
@@ -49,7 +52,7 @@ type TFieldType = {
 };
 
 type TBasicFieldType = Exclude<TFieldType, { type: "c-type" }>;
-type TPrimitiveBasicFieldType = Exclude<TBasicFieldType, { type: "array" } | { type: "struct" } | { type: "string" }>;
+type TPrimitiveBasicFieldType = Exclude<TBasicFieldType, { type: "array" } | { type: "struct" } | { type: "string" } | { type: "blob" }>;
 
 const Int16: TFieldType = {
   type: "integer",
@@ -102,6 +105,13 @@ const ascii = ({ length }: { length: number }) => {
   } as const;
 };
 
+const blob = ({ sizeInBytes }: { sizeInBytes: number }) => {
+  return {
+    type: "blob",
+    sizeInBytes
+  } as const;
+};
+
 const pointer: TFieldType = {
   type: "pointer",
   fixedAbi: {}
@@ -122,6 +132,7 @@ const types = {
   UInt32,
   UInt64,
   ascii,
+  blob,
   pointer
 } as const;
 

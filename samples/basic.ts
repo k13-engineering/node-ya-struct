@@ -9,6 +9,7 @@ const def = define({
       { name: "a", definition: types.Int16 },
       { name: "b", definition: types.UInt16 },
       { name: "c", definition: types.UInt32 },
+      { name: "d", definition: types.blob({ sizeInBytes: 32 }) },
     ]
   }
 });
@@ -21,10 +22,18 @@ const parser = def.parser({
   }
 });
 
+const d = new Uint8Array(32);
+
+const encoder = new TextEncoder();
+const text = "Hello, world!";
+const encodedText = encoder.encode(text);
+d.set(encodedText);
+
 const value: ReturnType<typeof parser.parse> = {
   a: 0n,
   b: 1n,
   c: 2n,
+  d
 };
 
 console.log("value", value);
