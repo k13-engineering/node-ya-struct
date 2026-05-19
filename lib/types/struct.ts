@@ -5,7 +5,6 @@ import { createPointerParser } from "./pointer.ts";
 import { createStringParser } from "./string.ts";
 import { createArrayParser } from "./array.ts";
 import type { TValueParser } from "./value.ts";
-import type { TFieldType } from "./index.ts";
 
 type TStructParser = TValueParser<Record<string, unknown>>;
 
@@ -14,6 +13,51 @@ const subData = ({ data, offsetInBits, sizeInBits }: { data: Uint8Array, offsetI
     data: new Uint8Array(data.buffer, data.byteOffset + Math.floor(offsetInBits / 8), Math.ceil(sizeInBits / 8)),
     offsetInBits: offsetInBits % 8
   };
+};
+
+// eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
+const createFieldParser = ({ definition, endianness }: { definition: TLayoutedField, endianness: TEndianness }): TValueParser<any> => {
+  if (definition.type === "integer") {
+    return createIntegerParser({
+      sizeInBits: definition.sizeInBits,
+      signed: definition.signed,
+      endianness
+    });
+  }
+
+  if (definition.type === "pointer") {
+    return createPointerParser({
+      sizeInBits: definition.sizeInBits,
+      endianness
+    });
+  }
+
+  if (definition.type === "struct") {
+    // eslint-disable-next-line no-use-before-define
+    return createStructParser({
+      layoutedFields: definition.fields,
+      structOffsetInBits: definition.offsetInBits,
+      endianness
+    });
+  }
+
+  if (definition.type === "string") {
+    return createStringParser({
+      length: definition.length,
+    });
+  }
+
+  if (definition.type === "array") {
+    const elementParser = createFieldParser({ definition: definition.elementType, endianness });
+    const elementSizeInBytes = definition.elementType.sizeInBits / 8;
+    return createArrayParser({
+      fieldParser: elementParser as TValueParser<unknown>,
+      elementSizeInBytes,
+      length: definition.length
+    });
+  }
+
+  throw Error("not implemented yet");
 };
 
 const createStructParser = ({
@@ -26,47 +70,9 @@ const createStructParser = ({
   endianness: TEndianness
 }): TStructParser => {
 
-  // eslint-disable-next-line complexity, @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fieldParsers: TValueParser<any>[] = layoutedFields.map((field) => {
-    if (field.definition.type === "integer") {
-      return createIntegerParser({
-        sizeInBits: field.definition.sizeInBits,
-        signed: field.definition.signed,
-        endianness
-      });
-    }
-
-    if (field.definition.type === "pointer") {
-      return createPointerParser({
-        sizeInBits: field.definition.sizeInBits,
-        endianness
-      });
-    }
-
-    if (field.definition.type === "struct") {
-      return createStructParser({
-        layoutedFields: field.definition.fields,
-        structOffsetInBits: field.definition.offsetInBits,
-        endianness
-      });
-    }
-
-    if (field.definition.type === "string") {
-      return createStringParser({
-        length: field.definition.length,
-      });
-    }
-
-    if (field.definition.type === "array") {
-      return createArrayParser({
-        // TODO: cast should not be necessary
-        elementType: field.definition.elementType as TFieldType,
-        endianness,
-        length: field.definition.length
-      });
-    }
-
-    throw Error("not implemented yet");
+    return createFieldParser({ definition: field.definition, endianness });
   });
 
   const parse: TStructParser["parse"] = ({ data, offsetInBits }) => {
